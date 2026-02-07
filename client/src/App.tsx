@@ -15,6 +15,7 @@ import AuditLogPage from "@/pages/audit-log";
 import UsersPage from "@/pages/users";
 import ParReportPage from "@/pages/par-report";
 import PhysicalCountPage from "@/pages/physical-count";
+import ParLevelsPage from "@/pages/par-levels";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRoutes() {
@@ -31,6 +32,7 @@ function AuthenticatedRoutes() {
       <Route path="/more/users" component={UsersPage} />
       <Route path="/more/par-report" component={ParReportPage} />
       <Route path="/physical-count" component={PhysicalCountPage} />
+      <Route path="/more/par-levels" component={ParLevelsPage} />
       <Route component={NotFound} />
     </Switch>
   );

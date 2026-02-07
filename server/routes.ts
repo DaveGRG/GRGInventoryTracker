@@ -49,6 +49,11 @@ const bulkAllocationsSchema = z.object({
   allocations: z.array(bulkAllocationRowSchema).min(1),
 });
 
+const updateParLevelsSchema = z.object({
+  farmParLevel: z.number().int().min(0),
+  mkeParLevel: z.number().int().min(0),
+});
+
 const createUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(4),
@@ -105,6 +110,17 @@ export async function registerRoutes(
     });
 
     res.json(result);
+  });
+
+  app.patch("/api/inventory/:sku/par-levels", isAuthenticated, validate(updateParLevelsSchema), async (req: any, res) => {
+    const { sku } = req.params;
+    const { farmParLevel, mkeParLevel } = req.body;
+
+    const item = await storage.getInventoryItem(sku);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    const updated = await storage.updateInventoryItem(sku, { farmParLevel, mkeParLevel });
+    res.json(updated);
   });
 
   app.post("/api/stock/adjust", isAuthenticated, validate(stockAdjustSchema), async (req: any, res) => {
