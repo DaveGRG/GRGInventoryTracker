@@ -593,6 +593,7 @@ export default function InventoryPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="Black Locust">Black Locust</SelectItem>
                     <SelectItem value="Cedar">Cedar</SelectItem>
                     <SelectItem value="Cedar Tone">Cedar Tone</SelectItem>
                     <SelectItem value="Pine">Pine</SelectItem>
