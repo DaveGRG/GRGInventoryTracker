@@ -4,7 +4,9 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertInventoryItemSchema } from "@shared/schema";
+import { insertInventoryItemSchema, stockLevels, transfers, auditLog, allocations, pickLists } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 const stockAdjustSchema = z.object({
   sku: z.string().min(1),
@@ -72,6 +74,20 @@ function validate<T>(schema: z.ZodSchema<T>) {
     req.body = result.data;
     next();
   };
+}
+
+async function upsertStockInTx(tx: any, sku: string, locationId: string, quantity: number, lastCounted?: string, countedBy?: string) {
+  const existing = await tx.select().from(stockLevels).where(
+    and(eq(stockLevels.sku, sku), eq(stockLevels.locationId, locationId))
+  );
+  if (existing.length > 0) {
+    const updateData: any = { quantity };
+    if (lastCounted !== undefined) updateData.lastCounted = lastCounted;
+    if (countedBy !== undefined) updateData.countedBy = countedBy;
+    await tx.update(stockLevels).set(updateData).where(eq(stockLevels.id, existing[0].id));
+  } else {
+    await tx.insert(stockLevels).values({ sku, locationId, quantity, lastCounted: lastCounted || null, countedBy: countedBy || null });
+  }
 }
 
 export async function registerRoutes(
@@ -534,38 +550,41 @@ export async function registerRoutes(
 
     const stockLevel = await storage.getStockLevel(pick.sku, pick.pickFromLocation);
     const oldQty = stockLevel?.quantity || 0;
-    const newQty = Math.max(0, oldQty - quantityPicked);
 
-    await storage.upsertStockLevel({
-      sku: pick.sku,
-      locationId: pick.pickFromLocation,
-      quantity: newQty,
-      lastCounted: new Date().toISOString().split("T")[0],
-      countedBy: req.user?.claims?.email || "system",
-    });
-
-    await storage.updatePickList(pickId, {
-      quantityPicked,
-      status: "Completed",
-      pickedBy: req.user?.claims?.email || "system",
-      pickDate: new Date().toISOString().split("T")[0],
-    });
-
-    const allocs = await storage.getAllocationsByProject(pick.projectId);
-    const matchingAlloc = allocs.find((a) => a.sku === pick.sku && a.sourceLocation === pick.pickFromLocation && a.status === "Reserved");
-    if (matchingAlloc) {
-      await storage.updateAllocation(matchingAlloc.id, { status: "Pulled" });
+    if (quantityPicked > oldQty) {
+      return res.status(400).json({ message: `Insufficient stock. Available: ${oldQty}, Requested: ${quantityPicked}` });
     }
 
-    await storage.createAuditEntry({
-      userEmail: req.user?.claims?.email || "system",
-      actionType: "Pick",
-      sku: pick.sku,
-      locationId: pick.pickFromLocation,
-      quantityBefore: oldQty,
-      quantityAfter: newQty,
-      reason: `Picked ${quantityPicked} for project ${pick.projectId}`,
-      notes: null,
+    const newQty = oldQty - quantityPicked;
+    const userEmail = req.user?.claims?.email || "system";
+    const today = new Date().toISOString().split("T")[0];
+
+    await storage.runTransaction(async (tx) => {
+      await upsertStockInTx(tx, pick.sku, pick.pickFromLocation, newQty, today, userEmail);
+
+      await tx.update(pickLists).set({
+        quantityPicked,
+        status: "Completed",
+        pickedBy: userEmail,
+        pickDate: today,
+      }).where(eq(pickLists.id, pickId));
+
+      const allocs = await tx.select().from(allocations).where(eq(allocations.projectId, pick.projectId));
+      const matchingAlloc = allocs.find((a) => a.sku === pick.sku && a.sourceLocation === pick.pickFromLocation && a.status === "Reserved");
+      if (matchingAlloc) {
+        await tx.update(allocations).set({ status: "Pulled" }).where(eq(allocations.id, matchingAlloc.id));
+      }
+
+      await tx.insert(auditLog).values({
+        userEmail,
+        actionType: "Pick",
+        sku: pick.sku,
+        locationId: pick.pickFromLocation,
+        quantityBefore: oldQty,
+        quantityAfter: newQty,
+        reason: `Picked ${quantityPicked} for project ${pick.projectId}`,
+        notes: null,
+      });
     });
 
     res.json({ success: true });
@@ -620,37 +639,33 @@ export async function registerRoutes(
 
     const sourceStock = await storage.getStockLevel(transfer.sku, transfer.fromLocation);
     const oldSourceQty = sourceStock?.quantity || 0;
-    const newSourceQty = Math.max(0, oldSourceQty - transfer.quantity);
 
-    await storage.upsertStockLevel({
-      sku: transfer.sku,
-      locationId: transfer.fromLocation,
-      quantity: newSourceQty,
-    });
+    if (oldSourceQty < transfer.quantity) {
+      return res.status(400).json({ message: `Insufficient stock at source. Available: ${oldSourceQty}, Requested: ${transfer.quantity}` });
+    }
 
-    const transitStock = await storage.getStockLevel(transfer.sku, "TRANSIT");
-    const oldTransitQty = transitStock?.quantity || 0;
+    const newSourceQty = oldSourceQty - transfer.quantity;
 
-    await storage.upsertStockLevel({
-      sku: transfer.sku,
-      locationId: "TRANSIT",
-      quantity: oldTransitQty + transfer.quantity,
-    });
+    await storage.runTransaction(async (tx) => {
+      await upsertStockInTx(tx, transfer.sku, transfer.fromLocation, newSourceQty);
+      const transitExisting = await tx.select().from(stockLevels).where(
+        and(eq(stockLevels.sku, transfer.sku), eq(stockLevels.locationId, "TRANSIT"))
+      );
+      const newTransitQty = (transitExisting[0]?.quantity || 0) + transfer.quantity;
+      await upsertStockInTx(tx, transfer.sku, "TRANSIT", newTransitQty);
 
-    await storage.updateTransfer(transferId, {
-      status: "In Transit",
-      shippedDate: new Date().toISOString().split("T")[0],
-    });
+      await tx.update(transfers).set({ status: "In Transit", shippedDate: new Date().toISOString().split("T")[0] }).where(eq(transfers.id, transferId));
 
-    await storage.createAuditEntry({
-      userEmail: req.user?.claims?.email || "system",
-      actionType: "Transfer",
-      sku: transfer.sku,
-      locationId: transfer.fromLocation,
-      quantityBefore: oldSourceQty,
-      quantityAfter: newSourceQty,
-      reason: `Shipped: ${transfer.quantity} from ${transfer.fromLocation} to Transit`,
-      notes: null,
+      await tx.insert(auditLog).values({
+        userEmail: req.user?.claims?.email || "system",
+        actionType: "Transfer",
+        sku: transfer.sku,
+        locationId: transfer.fromLocation,
+        quantityBefore: oldSourceQty,
+        quantityAfter: newSourceQty,
+        reason: `Shipped: ${transfer.quantity} from ${transfer.fromLocation} to Transit`,
+        notes: null,
+      });
     });
 
     res.json({ success: true });
@@ -664,38 +679,45 @@ export async function registerRoutes(
     if (transfer.status !== "In Transit") return res.status(400).json({ message: "Transfer is not In Transit" });
 
     const qty = quantityReceived ?? transfer.quantity;
-
     const transitStock = await storage.getStockLevel(transfer.sku, "TRANSIT");
     const oldTransitQty = transitStock?.quantity || 0;
-    await storage.upsertStockLevel({
-      sku: transfer.sku,
-      locationId: "TRANSIT",
-      quantity: Math.max(0, oldTransitQty - qty),
-    });
+
+    if (qty > oldTransitQty) {
+      return res.status(400).json({ message: `Insufficient stock in transit. Available: ${oldTransitQty}, Attempting to receive: ${qty}` });
+    }
 
     const destStock = await storage.getStockLevel(transfer.sku, transfer.toLocation);
     const oldDestQty = destStock?.quantity || 0;
-    await storage.upsertStockLevel({
-      sku: transfer.sku,
-      locationId: transfer.toLocation,
-      quantity: oldDestQty + qty,
-    });
 
-    await storage.updateTransfer(transferId, {
-      status: "Received",
-      receivedBy: req.user?.claims?.email || "system",
-      receivedDate: new Date().toISOString().split("T")[0],
-    });
+    await storage.runTransaction(async (tx) => {
+      const transitExisting = await tx.select().from(stockLevels).where(
+        and(eq(stockLevels.sku, transfer.sku), eq(stockLevels.locationId, "TRANSIT"))
+      );
+      const currentTransit = transitExisting[0]?.quantity || 0;
+      await upsertStockInTx(tx, transfer.sku, "TRANSIT", Math.max(0, currentTransit - qty));
 
-    await storage.createAuditEntry({
-      userEmail: req.user?.claims?.email || "system",
-      actionType: "Transfer",
-      sku: transfer.sku,
-      locationId: transfer.toLocation,
-      quantityBefore: oldDestQty,
-      quantityAfter: oldDestQty + qty,
-      reason: `Received: ${qty} at ${transfer.toLocation} from Transit`,
-      notes: null,
+      const destExisting = await tx.select().from(stockLevels).where(
+        and(eq(stockLevels.sku, transfer.sku), eq(stockLevels.locationId, transfer.toLocation))
+      );
+      const currentDest = destExisting[0]?.quantity || 0;
+      await upsertStockInTx(tx, transfer.sku, transfer.toLocation, currentDest + qty);
+
+      await tx.update(transfers).set({
+        status: "Received",
+        receivedBy: req.user?.claims?.email || "system",
+        receivedDate: new Date().toISOString().split("T")[0],
+      }).where(eq(transfers.id, transferId));
+
+      await tx.insert(auditLog).values({
+        userEmail: req.user?.claims?.email || "system",
+        actionType: "Transfer",
+        sku: transfer.sku,
+        locationId: transfer.toLocation,
+        quantityBefore: oldDestQty,
+        quantityAfter: oldDestQty + qty,
+        reason: `Received: ${qty} at ${transfer.toLocation} from Transit`,
+        notes: null,
+      });
     });
 
     res.json({ success: true });
@@ -709,17 +731,35 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Cannot cancel this transfer" });
     }
 
-    await storage.updateTransfer(transferId, { status: "Cancelled" });
+    const wasInTransit = transfer.status === "In Transit";
 
-    await storage.createAuditEntry({
-      userEmail: req.user?.claims?.email || "system",
-      actionType: "Transfer",
-      sku: transfer.sku,
-      locationId: null,
-      quantityBefore: null,
-      quantityAfter: null,
-      reason: `Transfer cancelled: ${transfer.sku} from ${transfer.fromLocation} to ${transfer.toLocation}`,
-      notes: null,
+    await storage.runTransaction(async (tx) => {
+      if (wasInTransit) {
+        const transitExisting = await tx.select().from(stockLevels).where(
+          and(eq(stockLevels.sku, transfer.sku), eq(stockLevels.locationId, "TRANSIT"))
+        );
+        const currentTransit = transitExisting[0]?.quantity || 0;
+        await upsertStockInTx(tx, transfer.sku, "TRANSIT", Math.max(0, currentTransit - transfer.quantity));
+
+        const sourceExisting = await tx.select().from(stockLevels).where(
+          and(eq(stockLevels.sku, transfer.sku), eq(stockLevels.locationId, transfer.fromLocation))
+        );
+        const currentSource = sourceExisting[0]?.quantity || 0;
+        await upsertStockInTx(tx, transfer.sku, transfer.fromLocation, currentSource + transfer.quantity);
+      }
+
+      await tx.update(transfers).set({ status: "Cancelled" }).where(eq(transfers.id, transferId));
+
+      await tx.insert(auditLog).values({
+        userEmail: req.user?.claims?.email || "system",
+        actionType: "Transfer",
+        sku: transfer.sku,
+        locationId: transfer.fromLocation,
+        quantityBefore: null,
+        quantityAfter: null,
+        reason: `Transfer cancelled: ${transfer.sku} from ${transfer.fromLocation} to ${transfer.toLocation}${wasInTransit ? " (stock returned from Transit)" : ""}`,
+        notes: null,
+      });
     });
 
     res.json({ success: true });
@@ -744,9 +784,10 @@ export async function registerRoutes(
       return res.status(400).json({ message: "User with this email already exists" });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await storage.createAppUser({
       email,
-      passwordHash: password,
+      passwordHash: hashedPassword,
       displayName,
       role: role || "Field Crew",
       assignedHub: assignedHub || "All",

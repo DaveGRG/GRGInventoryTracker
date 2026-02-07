@@ -11,7 +11,9 @@ import {
   type AuditLogEntry, type InsertAuditLogEntry,
   type AppUser, type InsertAppUser,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
+import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "@shared/schema";
 import { eq, and, sql, desc, inArray, like, or } from "drizzle-orm";
 
 export interface IStorage {
@@ -60,6 +62,8 @@ export interface IStorage {
   getAppUserByEmail(email: string): Promise<AppUser | undefined>;
   createAppUser(user: InsertAppUser): Promise<AppUser>;
   updateAppUser(id: number, data: Partial<InsertAppUser>): Promise<AppUser | undefined>;
+
+  runTransaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -246,6 +250,22 @@ export class DatabaseStorage implements IStorage {
   async updateAppUser(id: number, data: Partial<InsertAppUser>): Promise<AppUser | undefined> {
     const [updated] = await db.update(appUsers).set(data).where(eq(appUsers.id, id)).returning();
     return updated || undefined;
+  }
+
+  async runTransaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const txDb = drizzle(client, { schema });
+      const result = await fn(txDb as unknown as typeof db);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 

@@ -4,6 +4,13 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-07: Code review and security hardening
+  - Password hashing with bcrypt for app user creation
+  - Database transactions for transfer ship/receive/cancel and pick list confirmation
+  - Stock availability validation before shipping, receiving, and picking
+  - Transfer cancel returns stock from Transit to source when In Transit
+  - Fixed LSP type errors (zoneType, quantityBefore/After, string assertions)
+  - Added Black Locust as lumber species option
 - 2026-02-07: Added New Inventory Item creation
   - "New Item" button on Inventory page opens creation dialog
   - POST /api/inventory endpoint with duplicate SKU validation (409)
