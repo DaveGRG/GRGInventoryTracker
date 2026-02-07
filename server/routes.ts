@@ -198,14 +198,74 @@ export async function registerRoutes(
 
     belowParItems.sort((a, b) => b.deficit - a.deficit);
 
+    const uniqueClients = new Set(allProjects.map((p) => p.client));
+    const activeClients = new Set(
+      allProjects.filter((p) => p.status === "Active" || p.status === "Planning").map((p) => p.client)
+    );
+
     res.json({
       totalSkus: items.length,
       belowParItems,
       recentActivity: auditEntries.slice(0, 10),
       activeTransfers: allTransfers.filter((t) => t.status === "Requested" || t.status === "In Transit").length,
       activeProjects: allProjects.filter((p) => p.status === "Active" || p.status === "Planning").length,
+      totalClients: uniqueClients.size,
+      activeClients: activeClients.size,
       pendingPickLists: 0,
     });
+  });
+
+  app.get("/api/clients", isAuthenticated, async (_req, res) => {
+    const allProjects = await storage.getProjects();
+    const allocations = await storage.getAllocations();
+
+    const clientMap = new Map<string, { 
+      name: string; 
+      products: typeof allProjects;
+      activeCount: number;
+      completedCount: number;
+      totalAllocations: number;
+    }>();
+
+    for (const project of allProjects) {
+      const clientName = project.client;
+      if (!clientMap.has(clientName)) {
+        clientMap.set(clientName, { name: clientName, products: [], activeCount: 0, completedCount: 0, totalAllocations: 0 });
+      }
+      const entry = clientMap.get(clientName)!;
+      entry.products.push(project);
+      if (project.status === "Active" || project.status === "Planning") entry.activeCount++;
+      if (project.status === "Complete") entry.completedCount++;
+    }
+
+    for (const alloc of allocations) {
+      const project = allProjects.find((p) => p.projectId === alloc.projectId);
+      if (project) {
+        const entry = clientMap.get(project.client);
+        if (entry) entry.totalAllocations++;
+      }
+    }
+
+    const clients = Array.from(clientMap.values()).map((c) => ({
+      name: c.name,
+      productCount: c.products.length,
+      activeCount: c.activeCount,
+      completedCount: c.completedCount,
+      totalAllocations: c.totalAllocations,
+      products: c.products.map((p) => ({
+        projectId: p.projectId,
+        projectName: p.projectName,
+        status: p.status,
+        assignedHub: p.assignedHub,
+        startDate: p.startDate,
+        endDate: p.endDate,
+        projectLead: p.projectLead,
+      })),
+    }));
+
+    clients.sort((a, b) => b.activeCount - a.activeCount || a.name.localeCompare(b.name));
+
+    res.json(clients);
   });
 
   app.get("/api/reports/par-levels", isAuthenticated, async (_req, res) => {

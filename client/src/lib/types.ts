@@ -32,4 +32,25 @@ export interface DashboardData {
   pendingPickLists: number;
   activeTransfers: number;
   activeProjects: number;
+  totalClients: number;
+  activeClients: number;
+}
+
+export interface ClientProduct {
+  projectId: string;
+  projectName: string;
+  status: string;
+  assignedHub: string;
+  startDate: string | null;
+  endDate: string | null;
+  projectLead: string | null;
+}
+
+export interface ClientSummary {
+  name: string;
+  productCount: number;
+  activeCount: number;
+  completedCount: number;
+  totalAllocations: number;
+  products: ClientProduct[];
 }

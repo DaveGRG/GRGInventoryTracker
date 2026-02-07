@@ -4,6 +4,12 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-07: Added Client Directory feature
+  - New /clients page with searchable client directory grouping products by client
+  - Expandable client cards showing product count, active/completed status
+  - GET /api/clients endpoint aggregating projects by client field
+  - Dashboard updated with Active Clients stat card linking to /clients
+  - View Clients quick action button on dashboard
 - 2026-02-07: Added Par Levels management page
   - New page at /more/par-levels to view and edit Farm/MKE par levels for all items
   - PATCH /api/inventory/:sku/par-levels endpoint with Zod validation
