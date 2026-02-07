@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { AppHeader } from "@/components/app-header";
@@ -11,13 +11,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus, User, MapPin, Calendar, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Plus, User, MapPin, Calendar, CheckCircle2, Upload, FileSpreadsheet, AlertCircle, CheckCircle } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Project, Allocation, PickList, InventoryItem, Location as LocationType } from "@shared/schema";
+
+interface BulkResult {
+  row: number;
+  sku: string;
+  status: "success" | "error";
+  message: string;
+}
+
+function parseCSV(text: string): { sku: string; quantity: string; sourceLocation: string }[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) return [];
+
+  const header = lines[0].toLowerCase().split(",").map((h) => h.trim());
+  const skuIdx = header.findIndex((h) => h === "sku" || h === "item" || h === "material");
+  const qtyIdx = header.findIndex((h) => h === "quantity" || h === "qty" || h === "amount");
+  const locIdx = header.findIndex((h) => h === "source location" || h === "sourcelocation" || h === "location" || h === "from" || h === "source_location");
+
+  if (skuIdx === -1 || qtyIdx === -1 || locIdx === -1) return [];
+
+  return lines.slice(1).map((line) => {
+    const cols = line.split(",").map((c) => c.trim().replace(/^["']|["']$/g, ""));
+    return {
+      sku: cols[skuIdx] || "",
+      quantity: cols[qtyIdx] || "",
+      sourceLocation: cols[locIdx] || "",
+    };
+  }).filter((r) => r.sku || r.quantity || r.sourceLocation);
+}
 
 export default function ProjectDetailPage() {
   const [, params] = useRoute("/projects/:id");
@@ -32,6 +61,10 @@ export default function ProjectDetailPage() {
   const [confirmPickOpen, setConfirmPickOpen] = useState(false);
   const [selectedPick, setSelectedPick] = useState<PickList | null>(null);
   const [pickedQty, setPickedQty] = useState("");
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [csvParsedRows, setCsvParsedRows] = useState<{ sku: string; quantity: string; sourceLocation: string }[]>([]);
+  const [csvResults, setCsvResults] = useState<BulkResult[] | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`, projectId],
@@ -111,12 +144,59 @@ export default function ProjectDetailPage() {
     },
   });
 
+  const bulkAllocateMutation = useMutation({
+    mutationFn: async (rows: { sku: string; quantity: string; sourceLocation: string }[]) => {
+      const res = await apiRequest("POST", `/api/projects/${projectId}/allocations/bulk`, {
+        allocations: rows,
+      });
+      return res.json();
+    },
+    onSuccess: (data: { results: BulkResult[]; successCount: number; errorCount: number }) => {
+      setCsvResults(data.results);
+      setCsvParsedRows([]);
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/allocations`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({
+        title: "CSV Import Complete",
+        description: `${data.successCount} allocated, ${data.errorCount} errors`,
+        variant: data.errorCount > 0 ? "destructive" : "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Import Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const rows = parseCSV(text);
+      if (rows.length === 0) {
+        toast({
+          title: "Invalid CSV",
+          description: "Could not parse CSV. Make sure it has columns: SKU, Quantity, Source Location (or Location)",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCsvParsedRows(rows);
+      setCsvResults(null);
+      setCsvDialogOpen(true);
+    };
+    reader.readAsText(file);
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  };
+
   const reservedAllocations = allocationsData?.filter((a) => a.status === "Reserved") || [];
 
   if (projectLoading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <AppHeader title="Project" />
+        <AppHeader title="Product" />
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-32" />
@@ -130,11 +210,11 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <AppHeader title="Project Not Found" />
+        <AppHeader title="Product Not Found" />
         <div className="p-4 text-center py-12">
-          <p className="text-muted-foreground">Project not found.</p>
+          <p className="text-muted-foreground">Product not found.</p>
           <Button variant="outline" asChild className="mt-4">
-            <Link href="/projects">Back to Projects</Link>
+            <Link href="/projects">Back to Products</Link>
           </Button>
         </div>
         <BottomNav />
@@ -150,7 +230,7 @@ export default function ProjectDetailPage() {
         <Button variant="ghost" size="sm" asChild className="mb-2" data-testid="button-back-projects">
           <Link href="/projects">
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
+            Back to Products
           </Link>
         </Button>
 
@@ -202,6 +282,23 @@ export default function ProjectDetailPage() {
                 <Plus className="h-4 w-4 mr-1" />
                 Add Material
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => csvInputRef.current?.click()}
+                data-testid="button-csv-upload"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Import CSV
+              </Button>
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={handleCsvFileChange}
+                data-testid="input-csv-file"
+              />
               {reservedAllocations.length > 0 && (
                 <Button
                   size="sm"
@@ -357,6 +454,86 @@ export default function ProjectDetailPage() {
             >
               {confirmPickMutation.isPending ? "Confirming..." : "Confirm Pick"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={csvDialogOpen} onOpenChange={(open) => { if (!open) { setCsvDialogOpen(false); setCsvParsedRows([]); setCsvResults(null); } }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              {csvResults ? "Import Results" : "Preview CSV Import"}
+            </DialogTitle>
+            {!csvResults && (
+              <p className="text-sm text-muted-foreground">
+                {csvParsedRows.length} row{csvParsedRows.length !== 1 ? "s" : ""} found. Review and confirm to import.
+              </p>
+            )}
+          </DialogHeader>
+
+          {csvResults ? (
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="space-y-2 pr-3">
+                {csvResults.map((r, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-2 p-2 rounded-md text-sm ${
+                      r.status === "success" ? "bg-green-50 dark:bg-green-950/30" : "bg-red-50 dark:bg-red-950/30"
+                    }`}
+                    data-testid={`csv-result-row-${i}`}
+                  >
+                    {r.status === "success" ? (
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <span className="font-mono text-xs">{r.sku || `Row ${r.row}`}</span>
+                      <p className="text-xs text-muted-foreground">{r.message}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="space-y-1 pr-3">
+                <div className="grid grid-cols-3 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
+                  <span>SKU</span>
+                  <span>Qty</span>
+                  <span>Location</span>
+                </div>
+                {csvParsedRows.map((row, i) => (
+                  <div key={i} className="grid grid-cols-3 gap-2 text-sm py-1.5 border-b last:border-0" data-testid={`csv-preview-row-${i}`}>
+                    <span className="font-mono text-xs truncate">{row.sku}</span>
+                    <span className="tabular-nums">{row.quantity}</span>
+                    <span className="text-xs truncate">{row.sourceLocation}</span>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+
+          <DialogFooter className="flex-shrink-0">
+            {csvResults ? (
+              <Button onClick={() => { setCsvDialogOpen(false); setCsvResults(null); setCsvParsedRows([]); }} data-testid="button-csv-done">
+                Done
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => { setCsvDialogOpen(false); setCsvParsedRows([]); }}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => bulkAllocateMutation.mutate(csvParsedRows)}
+                  disabled={bulkAllocateMutation.isPending}
+                  data-testid="button-csv-confirm-import"
+                >
+                  {bulkAllocateMutation.isPending ? "Importing..." : `Import ${csvParsedRows.length} Items`}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

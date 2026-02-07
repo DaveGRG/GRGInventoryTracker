@@ -14,6 +14,7 @@ import MorePage from "@/pages/more";
 import AuditLogPage from "@/pages/audit-log";
 import UsersPage from "@/pages/users";
 import ParReportPage from "@/pages/par-report";
+import PhysicalCountPage from "@/pages/physical-count";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRoutes() {
@@ -29,6 +30,7 @@ function AuthenticatedRoutes() {
       <Route path="/more/audit" component={AuditLogPage} />
       <Route path="/more/users" component={UsersPage} />
       <Route path="/more/par-report" component={ParReportPage} />
+      <Route path="/physical-count" component={PhysicalCountPage} />
       <Route component={NotFound} />
     </Switch>
   );

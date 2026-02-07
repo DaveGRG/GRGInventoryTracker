@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, ChevronDown, ChevronRight, Filter, X, Minus, Plus } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Filter, X, Minus, Plus, ClipboardCheck } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -166,6 +166,12 @@ export default function InventoryPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" asChild data-testid="button-physical-count">
+              <Link href="/physical-count">
+                <ClipboardCheck className="h-4 w-4 mr-1.5" />
+                Physical Count
+              </Link>
+            </Button>
             <Badge
               variant={belowParOnly ? "default" : "outline"}
               className={`cursor-pointer text-xs ${belowParOnly ? "" : ""}`}

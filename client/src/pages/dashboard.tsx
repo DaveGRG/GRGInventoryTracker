@@ -57,7 +57,7 @@ export default function DashboardPage() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Active Projects</span>
+                  <span className="text-xs text-muted-foreground font-medium">Active Products</span>
                 </div>
                 <p className="text-2xl font-bold tabular-nums" data-testid="text-active-projects">{data?.activeProjects || 0}</p>
               </CardContent>
@@ -74,7 +74,7 @@ export default function DashboardPage() {
             <Button variant="outline" size="sm" asChild data-testid="button-quick-project">
               <Link href="/projects/new">
                 <ClipboardList className="h-4 w-4 mr-1.5" />
-                New Project
+                New Product
               </Link>
             </Button>
           </div>

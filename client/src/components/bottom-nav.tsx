@@ -4,7 +4,7 @@ import { LayoutDashboard, Package, ClipboardList, Truck, MoreHorizontal } from "
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard, testId: "nav-dashboard" },
   { path: "/inventory", label: "Inventory", icon: Package, testId: "nav-inventory" },
-  { path: "/projects", label: "Projects", icon: ClipboardList, testId: "nav-projects" },
+  { path: "/projects", label: "Products", icon: ClipboardList, testId: "nav-projects" },
   { path: "/transfers", label: "Transfers", icon: Truck, testId: "nav-transfers" },
   { path: "/more", label: "More", icon: MoreHorizontal, testId: "nav-more" },
 ];

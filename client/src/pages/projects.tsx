@@ -43,7 +43,7 @@ export default function ProjectsPage() {
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      toast({ title: "Project created", description: `${project.projectName} has been created.` });
+      toast({ title: "Product created", description: `${project.projectName} has been created.` });
       setCreateOpen(false);
       resetForm();
     },
@@ -71,7 +71,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader title="Projects" />
+      <AppHeader title="Products" />
 
       <div className="sticky top-14 z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">
@@ -80,7 +80,7 @@ export default function ProjectsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search projects..."
+                placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -89,7 +89,7 @@ export default function ProjectsPage() {
             </div>
             <Button onClick={() => setCreateOpen(true)} data-testid="button-new-project">
               <Plus className="h-4 w-4 mr-1.5" />
-              New
+              New Product
             </Button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -157,11 +157,11 @@ export default function ProjectsPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>New Project</DialogTitle>
+            <DialogTitle>New Product</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Project Name</Label>
+              <Label>Product Name</Label>
               <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} data-testid="input-project-name" />
             </div>
             <div>
@@ -196,7 +196,7 @@ export default function ProjectsPage() {
               disabled={!projectName || !client || createMutation.isPending}
               data-testid="button-save-project"
             >
-              {createMutation.isPending ? "Creating..." : "Create Project"}
+              {createMutation.isPending ? "Creating..." : "Create Product"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -39,6 +39,16 @@ const confirmPickSchema = z.object({
   quantityPicked: z.number().int().min(0),
 });
 
+const bulkAllocationRowSchema = z.object({
+  sku: z.string(),
+  quantity: z.union([z.string(), z.number()]),
+  sourceLocation: z.string(),
+});
+
+const bulkAllocationsSchema = z.object({
+  allocations: z.array(bulkAllocationRowSchema).min(1),
+});
+
 const createUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(4),
@@ -287,6 +297,81 @@ export async function registerRoutes(
     });
 
     res.json(alloc);
+  });
+
+  app.post("/api/projects/:id/allocations/bulk", isAuthenticated, validate(bulkAllocationsSchema), async (req: any, res) => {
+    const { allocations: rows } = req.body;
+
+    const project = await storage.getProject(req.params.id);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const results: { row: number; sku: string; status: "success" | "error"; message: string }[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const sku = (row.sku || "").trim();
+      const rawQty = String(row.quantity).trim();
+      const quantity = Number(rawQty);
+      const sourceLocation = (row.sourceLocation || "").trim();
+
+      if (!sku || !sourceLocation || !Number.isInteger(quantity) || quantity < 1) {
+        results.push({ row: i + 1, sku, status: "error", message: "Invalid data: SKU, quantity (>0), and source location are required" });
+        continue;
+      }
+
+      const item = await storage.getInventoryItem(sku);
+      if (!item) {
+        results.push({ row: i + 1, sku, status: "error", message: `SKU "${sku}" not found in inventory` });
+        continue;
+      }
+
+      const loc = await storage.getLocation(sourceLocation);
+      if (!loc) {
+        results.push({ row: i + 1, sku, status: "error", message: `Location "${sourceLocation}" not found` });
+        continue;
+      }
+
+      const stockLevel = await storage.getStockLevel(sku, sourceLocation);
+      const currentQty = stockLevel?.quantity || 0;
+      const activeAllocations = await storage.getActiveAllocationsForSku(sku);
+      const allocatedAtLocation = activeAllocations
+        .filter((a: any) => a.sourceLocation === sourceLocation)
+        .reduce((sum: number, a: any) => sum + a.quantity, 0);
+      const available = currentQty - allocatedAtLocation;
+
+      if (quantity > available) {
+        results.push({ row: i + 1, sku, status: "error", message: `Insufficient stock. Available: ${available}, Requested: ${quantity}` });
+        continue;
+      }
+
+      await storage.createAllocation({
+        projectId: req.params.id,
+        sku,
+        quantity,
+        sourceLocation,
+        status: "Reserved",
+        allocatedBy: req.user?.claims?.email || "system",
+        allocatedDate: new Date().toISOString().split("T")[0],
+        notes: "Bulk CSV import",
+      });
+
+      await storage.createAuditEntry({
+        userEmail: req.user?.claims?.email || "system",
+        actionType: "Allocation",
+        sku,
+        locationId: sourceLocation,
+        quantityBefore: null,
+        quantityAfter: null,
+        reason: `Reserved ${quantity} for project ${req.params.id} (CSV import)`,
+        notes: null,
+      });
+
+      results.push({ row: i + 1, sku, status: "success", message: `Allocated ${quantity} from ${sourceLocation}` });
+    }
+
+    const successCount = results.filter((r) => r.status === "success").length;
+    const errorCount = results.filter((r) => r.status === "error").length;
+    res.json({ results, successCount, errorCount });
   });
 
   app.post("/api/projects/:id/generate-pick-list", isAuthenticated, async (req: any, res) => {

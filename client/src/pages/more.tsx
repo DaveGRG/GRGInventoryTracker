@@ -1,13 +1,14 @@
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Users, Settings, ScrollText } from "lucide-react";
+import { FileText, Users, Settings, ScrollText, ClipboardCheck } from "lucide-react";
 import { Link } from "wouter";
 
 const menuItems = [
   { href: "/more/audit", label: "Audit Log", desc: "View all inventory changes", icon: ScrollText, testId: "link-audit-log" },
   { href: "/more/users", label: "User Management", desc: "Manage app users and roles", icon: Users, testId: "link-users" },
   { href: "/more/par-report", label: "Par Level Report", desc: "View reorder recommendations", icon: FileText, testId: "link-par-report" },
+  { href: "/physical-count", label: "Physical Count", desc: "Count and adjust inventory", icon: ClipboardCheck, testId: "link-physical-count" },
 ];
 
 export default function MorePage() {

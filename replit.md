@@ -4,6 +4,11 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-07: Added Physical Count, Product rename, CSV import features
+  - Physical Count page: Select location, enter counted quantities, bulk submit with audit logging
+  - Renamed "Project Name" to "Product Name" throughout UI (bottom nav, forms, detail pages, dashboard)
+  - CSV upload on product detail page for bulk material list import with preview and results summary
+  - Bulk allocation API endpoint: POST /api/projects/:id/allocations/bulk
 - 2026-02-07: Initial build of complete inventory management system
   - Database schema with 9 entity types pushed to PostgreSQL
   - All 36 Cedar and Cedar Tone lumber items seeded with stock levels
@@ -53,5 +58,7 @@ A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory 
 - Pick list confirmation automatically deducts stock and creates audit entry
 - Transfer "Ship" moves stock from source to Transit; "Receive" moves from Transit to destination
 - All stock changes write to audit log - no silent changes
-- Bottom navigation with 5 tabs: Dashboard, Inventory, Projects, Transfers, More
-- "More" page provides access to Audit Log, User Management, Par Level Report
+- Bottom navigation with 5 tabs: Dashboard, Inventory, Products, Transfers, More
+- "More" page provides access to Audit Log, User Management, Par Level Report, Physical Count
+- CSV import accepts columns: SKU (or Item/Material), Quantity (or Qty/Amount), Source Location (or Location/From)
+- User refers to "Projects" as "Products" - labels updated throughout UI, database columns unchanged
