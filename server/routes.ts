@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
+import { insertInventoryItemSchema } from "@shared/schema";
 
 const stockAdjustSchema = z.object({
   sku: z.string().min(1),
@@ -121,6 +122,49 @@ export async function registerRoutes(
 
     const updated = await storage.updateInventoryItem(sku, { farmParLevel, mkeParLevel });
     res.json(updated);
+  });
+
+  app.post("/api/inventory", isAuthenticated, async (req: any, res) => {
+    try {
+      const parsed = insertInventoryItemSchema.parse(req.body);
+
+      const existing = await storage.getInventoryItem(parsed.sku);
+      if (existing) {
+        return res.status(409).json({ message: `SKU "${parsed.sku}" already exists` });
+      }
+
+      const item = await storage.createInventoryItem(parsed);
+
+      const locs = await storage.getLocations();
+      for (const loc of locs) {
+        if (loc.locationType === "Virtual") continue;
+        await storage.upsertStockLevel({
+          sku: item.sku,
+          locationId: loc.locationId,
+          quantity: 0,
+          lastCounted: null,
+          countedBy: null,
+        });
+      }
+
+      await storage.createAuditEntry({
+        userEmail: req.user?.claims?.email || "system",
+        actionType: "Item Created",
+        sku: item.sku,
+        locationId: null,
+        previousQuantity: null,
+        newQuantity: null,
+        reason: "New inventory item created",
+        notes: `Description: ${item.description}`,
+      });
+
+      res.status(201).json(item);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      throw error;
+    }
   });
 
   app.post("/api/stock/adjust", isAuthenticated, validate(stockAdjustSchema), async (req: any, res) => {

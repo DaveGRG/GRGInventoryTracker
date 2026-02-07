@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, ChevronDown, ChevronRight, Filter, X, Minus, Plus, ClipboardCheck } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Filter, X, Minus, Plus, ClipboardCheck, PlusCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +56,17 @@ export default function InventoryPage() {
   const [adjustQuantity, setAdjustQuantity] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustNotes, setAdjustNotes] = useState("");
+  const [newItemDialog, setNewItemDialog] = useState(false);
+  const [newSku, setNewSku] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newCategory, setNewCategory] = useState("Lumber");
+  const [newSpecies, setNewSpecies] = useState("");
+  const [newThickness, setNewThickness] = useState("");
+  const [newWidth, setNewWidth] = useState("");
+  const [newLength, setNewLength] = useState("");
+  const [newFarmPar, setNewFarmPar] = useState("");
+  const [newMkePar, setNewMkePar] = useState("");
+  const [newNotes, setNewNotes] = useState("");
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -66,6 +77,57 @@ export default function InventoryPage() {
   const { data: locationsList } = useQuery<LocationType[]>({
     queryKey: ["/api/locations"],
   });
+
+  const createItemMutation = useMutation({
+    mutationFn: async (data: {
+      sku: string; description: string; category: string; species?: string;
+      thickness?: string; width?: string; length?: string;
+      farmParLevel: number; mkeParLevel: number; notes?: string;
+    }) => {
+      const res = await apiRequest("POST", "/api/inventory", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({ title: "Item created", description: "New inventory item added successfully." });
+      setExpandedZones((prev) => ({ ...prev, "no-stock": true }));
+      resetNewItemForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetNewItemForm = () => {
+    setNewItemDialog(false);
+    setNewSku("");
+    setNewDescription("");
+    setNewCategory("Lumber");
+    setNewSpecies("");
+    setNewThickness("");
+    setNewWidth("");
+    setNewLength("");
+    setNewFarmPar("");
+    setNewMkePar("");
+    setNewNotes("");
+  };
+
+  const handleCreateItem = () => {
+    if (!newSku.trim() || !newDescription.trim()) return;
+    createItemMutation.mutate({
+      sku: newSku.trim().toUpperCase(),
+      description: newDescription.trim(),
+      category: newCategory,
+      species: newSpecies || undefined,
+      thickness: newThickness || undefined,
+      width: newWidth || undefined,
+      length: newLength || undefined,
+      farmParLevel: parseInt(newFarmPar) || 0,
+      mkeParLevel: parseInt(newMkePar) || 0,
+      notes: newNotes || undefined,
+    });
+  };
 
   const adjustMutation = useMutation({
     mutationFn: async (data: { sku: string; locationId: string; newQuantity: number; reason: string; notes?: string }) => {
@@ -111,6 +173,16 @@ export default function InventoryPage() {
     return filteredItems?.filter((item) =>
       item.stockLevels?.some((sl) => sl.locationId === zoneId && sl.quantity > 0)
     ) || [];
+  };
+
+  const getNoStockItems = () => {
+    const hubLocIds = zones.map((z) => z.id);
+    return filteredItems?.filter((item) => {
+      const hubTotal = item.stockLevels
+        ?.filter((sl) => hubLocIds.includes(sl.locationId))
+        .reduce((sum, sl) => sum + sl.quantity, 0) || 0;
+      return hubTotal === 0;
+    }) || [];
   };
 
   const getQtyAtLocation = (item: InventoryItemWithStock, locId: string) => {
@@ -166,6 +238,10 @@ export default function InventoryPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => setNewItemDialog(true)} data-testid="button-new-item">
+              <PlusCircle className="h-4 w-4 mr-1.5" />
+              New Item
+            </Button>
             <Button variant="outline" size="sm" asChild data-testid="button-physical-count">
               <Link href="/physical-count">
                 <ClipboardCheck className="h-4 w-4 mr-1.5" />
@@ -275,6 +351,56 @@ export default function InventoryPage() {
               </Collapsible>
             );
           })}
+
+          {(() => {
+            const noStockItems = getNoStockItems();
+            if (noStockItems.length === 0) return null;
+            const isOpen = expandedZones["no-stock"] ?? !!search;
+            return (
+              <Collapsible open={isOpen} onOpenChange={() => toggleZone("no-stock")}>
+                <CollapsibleTrigger className="w-full" data-testid="zone-toggle-no-stock">
+                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      <span className="text-sm font-semibold text-muted-foreground">No Stock</span>
+                    </div>
+                    <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
+                      {noStockItems.length} items
+                    </Badge>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="divide-y">
+                    {noStockItems.map((item) => {
+                      const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
+                      return (
+                        <div
+                          key={item.sku}
+                          className="px-4 py-3 hover-elevate cursor-pointer"
+                          onClick={() => setSelectedItem(item)}
+                          data-testid={`item-row-${item.sku}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-mono font-semibold">{item.sku}</span>
+                                <StatusBadge status={item.status} />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-xl font-bold tabular-nums text-muted-foreground" data-testid={`text-qty-${item.sku}`}>0</p>
+                              <ParIndicator current={0} par={parLevel} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })()}
         </div>
       )}
 
@@ -415,6 +541,137 @@ export default function InventoryPage() {
               data-testid="button-confirm-adjust"
             >
               {adjustMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={newItemDialog} onOpenChange={(open) => { if (!open) resetNewItemForm(); else setNewItemDialog(true); }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Inventory Item</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>SKU *</Label>
+              <Input
+                placeholder="e.g. CDR-2X4-8"
+                value={newSku}
+                onChange={(e) => setNewSku(e.target.value)}
+                className="font-mono"
+                data-testid="input-new-sku"
+              />
+            </div>
+            <div>
+              <Label>Description *</Label>
+              <Input
+                placeholder="e.g. 2x4 Cedar 8ft"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                data-testid="input-new-description"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Category</Label>
+                <Select value={newCategory} onValueChange={setNewCategory}>
+                  <SelectTrigger data-testid="select-new-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Lumber">Lumber</SelectItem>
+                    <SelectItem value="Hardware">Hardware</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Species</Label>
+                <Select value={newSpecies || "none"} onValueChange={(v) => setNewSpecies(v === "none" ? "" : v)}>
+                  <SelectTrigger data-testid="select-new-species">
+                    <SelectValue placeholder="Select species" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="Cedar">Cedar</SelectItem>
+                    <SelectItem value="Cedar Tone">Cedar Tone</SelectItem>
+                    <SelectItem value="Pine">Pine</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Thickness</Label>
+                <Input
+                  placeholder='e.g. 2"'
+                  value={newThickness}
+                  onChange={(e) => setNewThickness(e.target.value)}
+                  data-testid="input-new-thickness"
+                />
+              </div>
+              <div>
+                <Label>Width</Label>
+                <Input
+                  placeholder='e.g. 4"'
+                  value={newWidth}
+                  onChange={(e) => setNewWidth(e.target.value)}
+                  data-testid="input-new-width"
+                />
+              </div>
+              <div>
+                <Label>Length</Label>
+                <Input
+                  placeholder="e.g. 8'"
+                  value={newLength}
+                  onChange={(e) => setNewLength(e.target.value)}
+                  data-testid="input-new-length"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Farm Par Level</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={newFarmPar}
+                  onChange={(e) => setNewFarmPar(e.target.value)}
+                  data-testid="input-new-farm-par"
+                />
+              </div>
+              <div>
+                <Label>MKE Par Level</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={newMkePar}
+                  onChange={(e) => setNewMkePar(e.target.value)}
+                  data-testid="input-new-mke-par"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Notes (optional)</Label>
+              <Textarea
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+                placeholder="Any additional notes..."
+                data-testid="input-new-notes"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetNewItemForm} data-testid="button-cancel-new-item">Cancel</Button>
+            <Button
+              onClick={handleCreateItem}
+              disabled={!newSku.trim() || !newDescription.trim() || createItemMutation.isPending}
+              data-testid="button-save-new-item"
+            >
+              {createItemMutation.isPending ? "Creating..." : "Create Item"}
             </Button>
           </DialogFooter>
         </DialogContent>

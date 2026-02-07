@@ -4,6 +4,12 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-07: Added New Inventory Item creation
+  - "New Item" button on Inventory page opens creation dialog
+  - POST /api/inventory endpoint with duplicate SKU validation (409)
+  - Auto-initializes stock levels at 0 for all non-virtual locations
+  - Audit log entry created for new items
+  - "No Stock" collapsible section shows items with 0 quantity (auto-expands after creation or when searching)
 - 2026-02-07: Added Client Directory feature
   - New /clients page with searchable client directory grouping products by client
   - Expandable client cards showing product count, active/completed status
