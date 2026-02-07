@@ -148,7 +148,7 @@ export default function InventoryPage() {
 
   const zones = hub === "Farm" ? farmZones : mkeZones;
 
-  const species = [...new Set(items?.map((i) => i.species).filter(Boolean) || [])];
+  const species = Array.from(new Set(items?.map((i) => i.species).filter(Boolean) || []));
 
   const filteredItems = items?.filter((item) => {
     if (search) {

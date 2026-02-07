@@ -137,7 +137,7 @@ export async function registerRoutes(
 
       const locs = await storage.getLocations();
       for (const loc of locs) {
-        if (loc.locationType === "Virtual") continue;
+        if (loc.zoneType === "Virtual") continue;
         await storage.upsertStockLevel({
           sku: item.sku,
           locationId: loc.locationId,
@@ -152,8 +152,8 @@ export async function registerRoutes(
         actionType: "Item Created",
         sku: item.sku,
         locationId: null,
-        previousQuantity: null,
-        newQuantity: null,
+        quantityBefore: null,
+        quantityAfter: null,
         reason: "New inventory item created",
         notes: `Description: ${item.description}`,
       });
@@ -350,7 +350,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/projects/:id", isAuthenticated, async (req, res) => {
-    const project = await storage.getProject(req.params.id);
+    const project = await storage.getProject(req.params.id as string);
     if (!project) return res.status(404).json({ message: "Project not found" });
     res.json(project);
   });
@@ -375,7 +375,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/projects/:id/allocations", isAuthenticated, async (req, res) => {
-    const allocs = await storage.getAllocationsByProject(req.params.id);
+    const allocs = await storage.getAllocationsByProject(req.params.id as string);
     res.json(allocs);
   });
 
@@ -521,7 +521,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/projects/:id/pick-lists", isAuthenticated, async (req, res) => {
-    const picks = await storage.getPickListsByProject(req.params.id);
+    const picks = await storage.getPickListsByProject(req.params.id as string);
     res.json(picks);
   });
 
