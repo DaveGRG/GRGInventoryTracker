@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Calendar, User, MapPin, Search } from "lucide-react";
+import { Plus, Calendar, User, MapPin, Search, ChevronDown, Check } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,14 @@ export default function ProjectsPage() {
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
+
+  const existingClients = Array.from(
+    new Set(projects?.map((p) => p.client).filter(Boolean) || [])
+  ).sort();
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+  const filteredClients = existingClients.filter((c) =>
+    c.toLowerCase().includes(client.toLowerCase())
+  );
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -164,9 +172,42 @@ export default function ProjectsPage() {
               <Label>Product Name</Label>
               <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} data-testid="input-project-name" />
             </div>
-            <div>
+            <div className="relative">
               <Label>Client</Label>
-              <Input value={client} onChange={(e) => setClient(e.target.value)} data-testid="input-project-client" />
+              <div className="relative">
+                <Input
+                  value={client}
+                  onChange={(e) => {
+                    setClient(e.target.value);
+                    setClientDropdownOpen(true);
+                  }}
+                  onFocus={() => setClientDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setClientDropdownOpen(false), 150)}
+                  placeholder="Select or type a client name"
+                  data-testid="input-project-client"
+                />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+              {clientDropdownOpen && filteredClients.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto" data-testid="dropdown-client-list">
+                  {filteredClients.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover-elevate cursor-pointer text-left"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setClient(c);
+                        setClientDropdownOpen(false);
+                      }}
+                      data-testid={`option-client-${c}`}
+                    >
+                      {client === c && <Check className="h-3.5 w-3.5 text-foreground" />}
+                      <span>{c}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <Label>Assigned Hub</Label>
