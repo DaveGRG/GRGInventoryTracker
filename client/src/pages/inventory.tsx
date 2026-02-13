@@ -30,16 +30,10 @@ interface InventoryItemWithStock extends InventoryItem {
   stockLevels: StockWithLocation[];
 }
 
-const farmZones = [
-  { id: "FARM-WS", name: "Woodshop" },
-  { id: "FARM-SS", name: "Storage Shed" },
-  { id: "FARM-CC", name: "Corn Crib" },
-  { id: "FARM-GR", name: "Garage" },
-];
-
-const mkeZones = [
-  { id: "MKE-SHOP", name: "MKE Shop" },
-];
+const hubLocationMap: Record<string, string> = {
+  Farm: "FARM",
+  MKE: "MKE",
+};
 
 export default function InventoryPage() {
   const [search, setSearch] = useState("");
@@ -47,9 +41,7 @@ export default function InventoryPage() {
   const [speciesFilter, setSpeciesFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [belowParOnly, setBelowParOnly] = useState(false);
-  const [expandedZones, setExpandedZones] = useState<Record<string, boolean>>({
-    "FARM-WS": true, "FARM-SS": true, "FARM-CC": true, "FARM-GR": true, "MKE-SHOP": true,
-  });
+  const [showNoStock, setShowNoStock] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItemWithStock | null>(null);
   const [adjustDialog, setAdjustDialog] = useState(false);
   const [adjustLocation, setAdjustLocation] = useState("");
@@ -91,7 +83,7 @@ export default function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       toast({ title: "Item created", description: "New inventory item added successfully." });
-      setExpandedZones((prev) => ({ ...prev, "no-stock": true }));
+      setShowNoStock(true);
       resetNewItemForm();
     },
     onError: (error: Error) => {
@@ -146,7 +138,7 @@ export default function InventoryPage() {
     },
   });
 
-  const zones = hub === "Farm" ? farmZones : mkeZones;
+  const currentLocationId = hubLocationMap[hub] || "FARM";
 
   const species = Array.from(new Set(items?.map((i) => i.species).filter(Boolean) || []));
 
@@ -160,45 +152,28 @@ export default function InventoryPage() {
     if (belowParOnly) {
       const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
       if (parLevel === 0) return false;
-      const hubLocIds = zones.map((z) => z.id);
-      const hubTotal = item.stockLevels
-        ?.filter((sl) => hubLocIds.includes(sl.locationId))
-        .reduce((sum, sl) => sum + sl.quantity, 0) || 0;
-      if (hubTotal >= parLevel) return false;
+      const qty = getQtyAtLocation(item, currentLocationId);
+      if (qty >= parLevel) return false;
     }
     return true;
   });
 
-  const getZoneItems = (zoneId: string) => {
+  const getInStockItems = () => {
     return filteredItems?.filter((item) =>
-      item.stockLevels?.some((sl) => sl.locationId === zoneId && sl.quantity > 0)
+      item.stockLevels?.some((sl) => sl.locationId === currentLocationId && sl.quantity > 0)
     ) || [];
   };
 
   const getNoStockItems = () => {
-    const hubLocIds = zones.map((z) => z.id);
     return filteredItems?.filter((item) => {
-      const hubTotal = item.stockLevels
-        ?.filter((sl) => hubLocIds.includes(sl.locationId))
-        .reduce((sum, sl) => sum + sl.quantity, 0) || 0;
-      return hubTotal === 0;
+      const qty = getQtyAtLocation(item, currentLocationId);
+      return qty === 0;
     }) || [];
   };
 
-  const getQtyAtLocation = (item: InventoryItemWithStock, locId: string) => {
+  function getQtyAtLocation(item: InventoryItemWithStock, locId: string) {
     return item.stockLevels?.find((sl) => sl.locationId === locId)?.quantity || 0;
-  };
-
-  const getHubTotal = (item: InventoryItemWithStock) => {
-    const hubLocIds = zones.map((z) => z.id);
-    return item.stockLevels
-      ?.filter((sl) => hubLocIds.includes(sl.locationId))
-      .reduce((sum, sl) => sum + sl.quantity, 0) || 0;
-  };
-
-  const toggleZone = (id: string) => {
-    setExpandedZones((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
+  }
 
   const handleAdjust = () => {
     if (!selectedItem || !adjustLocation || !adjustQuantity || !adjustReason) return;
@@ -295,69 +270,41 @@ export default function InventoryPage() {
         <InventoryListSkeleton />
       ) : (
         <div className="max-w-2xl mx-auto">
-          {zones.map((zone) => {
-            const zoneItems = getZoneItems(zone.id);
-            const isOpen = expandedZones[zone.id] ?? true;
-            return (
-              <Collapsible key={zone.id} open={isOpen} onOpenChange={() => toggleZone(zone.id)}>
-                <CollapsibleTrigger className="w-full" data-testid={`zone-toggle-${zone.id}`}>
-                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-muted/30">
-                    <div className="flex items-center gap-2">
-                      {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                      <span className="text-sm font-semibold">{zone.name}</span>
-                    </div>
-                    <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
-                      {zoneItems.length} items
-                    </Badge>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="divide-y">
-                    {zoneItems.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                        No items in this zone
+          <div className="divide-y">
+            {getInStockItems().map((item) => {
+              const qty = getQtyAtLocation(item, currentLocationId);
+              const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
+              return (
+                <div
+                  key={item.sku}
+                  className="px-4 py-3 hover-elevate cursor-pointer"
+                  onClick={() => setSelectedItem(item)}
+                  data-testid={`item-row-${item.sku}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-mono font-semibold">{item.sku}</span>
+                        <StatusBadge status={item.status} />
                       </div>
-                    ) : (
-                      zoneItems.map((item) => {
-                        const qty = getQtyAtLocation(item, zone.id);
-                        const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
-                        const hubTotal = getHubTotal(item);
-                        return (
-                          <div
-                            key={item.sku}
-                            className="px-4 py-3 hover-elevate cursor-pointer"
-                            onClick={() => setSelectedItem(item)}
-                            data-testid={`item-row-${item.sku}`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-mono font-semibold">{item.sku}</span>
-                                  <StatusBadge status={item.status} />
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
-                              </div>
-                              <div className="text-right flex-shrink-0">
-                                <p className="text-xl font-bold tabular-nums" data-testid={`text-qty-${item.sku}`}>{qty}</p>
-                                <ParIndicator current={hubTotal} par={parLevel} />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xl font-bold tabular-nums" data-testid={`text-qty-${item.sku}`}>{qty}</p>
+                      <ParIndicator current={qty} par={parLevel} />
+                    </div>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
 
           {(() => {
             const noStockItems = getNoStockItems();
             if (noStockItems.length === 0) return null;
-            const isOpen = expandedZones["no-stock"] ?? !!search;
+            const isOpen = showNoStock || !!search;
             return (
-              <Collapsible open={isOpen} onOpenChange={() => toggleZone("no-stock")}>
+              <Collapsible open={isOpen} onOpenChange={() => setShowNoStock(!showNoStock)}>
                 <CollapsibleTrigger className="w-full" data-testid="zone-toggle-no-stock">
                   <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-muted/30">
                     <div className="flex items-center gap-2">
@@ -497,7 +444,7 @@ export default function InventoryPage() {
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {locationsList?.filter((l) => l.zoneType !== "Virtual").map((loc) => (
+                  {locationsList?.filter((l) => l.locationId !== "TRANSIT").map((loc) => (
                     <SelectItem key={loc.locationId} value={loc.locationId}>{loc.locationName}</SelectItem>
                   ))}
                 </SelectContent>

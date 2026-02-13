@@ -4,6 +4,14 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-13: Location simplification
+  - Merged 4 Farm zones (FARM-SS, FARM-LB, FARM-YD, FARM-CC) into single "FARM" location
+  - Renamed MKE-SHOP to "MKE"
+  - Only 3 locations remain: FARM, MKE, TRANSIT (virtual)
+  - Removed zoneType field from locations table schema
+  - Inventory page now shows flat item list per hub (no zone groupings)
+  - All frontend location filters use `locationId !== "TRANSIT"` instead of `zoneType !== "Virtual"`
+  - Database migration merged all zone stock levels into FARM
 - 2026-02-13: CSV import Source Location now optional
   - CSV upload only requires SKU and Quantity columns; Source Location is optional
   - Allocations without a source location get status "Pending" instead of "Reserved"
@@ -73,7 +81,7 @@ A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory 
 
 ### Data Model
 - **inventoryItems**: SKU-based lumber catalog with par levels per hub
-- **locations**: 4 Farm zones + 1 MKE zone + 1 Transit virtual zone
+- **locations**: FARM + MKE + TRANSIT (virtual) - simplified from multiple zones
 - **stockLevels**: Quantity per SKU per location (unique index)
 - **projects**: Client jobs with status tracking
 - **allocations**: Material reservations for projects

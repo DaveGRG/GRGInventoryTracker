@@ -153,7 +153,7 @@ export async function registerRoutes(
 
       const locs = await storage.getLocations();
       for (const loc of locs) {
-        if (loc.zoneType === "Virtual") continue;
+        if (loc.locationId === "TRANSIT") continue;
         await storage.upsertStockLevel({
           sku: item.sku,
           locationId: loc.locationId,

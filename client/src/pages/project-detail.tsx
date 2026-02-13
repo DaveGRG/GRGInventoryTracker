@@ -412,7 +412,7 @@ export default function ProjectDetailPage() {
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {locationsList?.filter((l) => l.zoneType !== "Virtual").map((loc) => (
+                  {locationsList?.filter((l) => l.locationId !== "TRANSIT").map((loc) => (
                     <SelectItem key={loc.locationId} value={loc.locationId}>{loc.locationName}</SelectItem>
                   ))}
                 </SelectContent>

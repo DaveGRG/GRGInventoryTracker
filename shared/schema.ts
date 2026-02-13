@@ -18,7 +18,6 @@ import { z } from "zod";
 export const categoryEnum = ["Lumber", "Hardware", "Ready-Made"] as const;
 export const itemStatusEnum = ["Active", "Discontinuing", "Discontinued"] as const;
 export const hubEnum = ["Farm", "MKE", "Transit"] as const;
-export const zoneTypeEnum = ["Storage Zone", "Virtual"] as const;
 export const projectStatusEnum = ["Planning", "Active", "Complete", "On Hold"] as const;
 export const allocationStatusEnum = ["Reserved", "Pulled", "Cancelled"] as const;
 export const transferStatusEnum = ["Requested", "In Transit", "Received", "Cancelled"] as const;
@@ -50,7 +49,6 @@ export const locations = pgTable("locations", {
   locationId: text("location_id").primaryKey(),
   locationName: text("location_name").notNull(),
   hub: text("hub").notNull(),
-  zoneType: text("zone_type").notNull(),
   notes: text("notes"),
 });
 

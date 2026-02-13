@@ -121,7 +121,7 @@ export default function TransfersPage() {
     return true;
   });
 
-  const physicalLocations = locationsList?.filter((l) => l.zoneType !== "Virtual") || [];
+  const physicalLocations = locationsList?.filter((l) => l.locationId !== "TRANSIT") || [];
 
   return (
     <div className="min-h-screen bg-background pb-20">

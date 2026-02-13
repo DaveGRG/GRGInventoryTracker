@@ -38,7 +38,7 @@ export default function PhysicalCountPage() {
   });
 
   const physicalLocations = useMemo(
-    () => locationsList?.filter((loc) => loc.zoneType !== "Virtual") || [],
+    () => locationsList?.filter((loc) => loc.locationId !== "TRANSIT") || [],
     [locationsList]
   );
 
