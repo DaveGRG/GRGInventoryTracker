@@ -36,16 +36,16 @@ function parseCSV(text: string): { sku: string; quantity: string; sourceLocation
   const qtyIdx = header.findIndex((h) => h === "quantity" || h === "qty" || h === "amount");
   const locIdx = header.findIndex((h) => h === "source location" || h === "sourcelocation" || h === "location" || h === "from" || h === "source_location");
 
-  if (skuIdx === -1 || qtyIdx === -1 || locIdx === -1) return [];
+  if (skuIdx === -1 || qtyIdx === -1) return [];
 
   return lines.slice(1).map((line) => {
     const cols = line.split(",").map((c) => c.trim().replace(/^["']|["']$/g, ""));
     return {
       sku: cols[skuIdx] || "",
       quantity: cols[qtyIdx] || "",
-      sourceLocation: cols[locIdx] || "",
+      sourceLocation: locIdx !== -1 ? (cols[locIdx] || "") : "",
     };
-  }).filter((r) => r.sku || r.quantity || r.sourceLocation);
+  }).filter((r) => r.sku || r.quantity);
 }
 
 export default function ProjectDetailPage() {
@@ -178,7 +178,7 @@ export default function ProjectDetailPage() {
       if (rows.length === 0) {
         toast({
           title: "Invalid CSV",
-          description: "Could not parse CSV. Make sure it has columns: SKU, Quantity, Source Location (or Location)",
+          description: "Could not parse CSV. Make sure it has columns: SKU and Quantity. Source Location is optional.",
           variant: "destructive",
         });
         return;
@@ -326,7 +326,7 @@ export default function ProjectDetailPage() {
                           <span className="text-sm font-mono font-medium">{alloc.sku}</span>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-muted-foreground">Qty: {alloc.quantity}</span>
-                            <span className="text-xs text-muted-foreground">From: {alloc.sourceLocation}</span>
+                            <span className="text-xs text-muted-foreground">From: {alloc.sourceLocation || "Not assigned"}</span>
                           </div>
                         </div>
                         <StatusBadge status={alloc.status} type="allocation" />
@@ -508,7 +508,7 @@ export default function ProjectDetailPage() {
                   <div key={i} className="grid grid-cols-3 gap-2 text-sm py-1.5 border-b last:border-0" data-testid={`csv-preview-row-${i}`}>
                     <span className="font-mono text-xs truncate">{row.sku}</span>
                     <span className="tabular-nums">{row.quantity}</span>
-                    <span className="text-xs truncate">{row.sourceLocation}</span>
+                    <span className="text-xs truncate">{row.sourceLocation || "Not assigned"}</span>
                   </div>
                 ))}
               </div>

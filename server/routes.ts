@@ -45,7 +45,7 @@ const confirmPickSchema = z.object({
 const bulkAllocationRowSchema = z.object({
   sku: z.string(),
   quantity: z.union([z.string(), z.number()]),
-  sourceLocation: z.string(),
+  sourceLocation: z.string().optional().default(""),
 });
 
 const bulkAllocationsSchema = z.object({
@@ -450,8 +450,8 @@ export async function registerRoutes(
       const quantity = Number(rawQty);
       const sourceLocation = (row.sourceLocation || "").trim();
 
-      if (!sku || !sourceLocation || !Number.isInteger(quantity) || quantity < 1) {
-        results.push({ row: i + 1, sku, status: "error", message: "Invalid data: SKU, quantity (>0), and source location are required" });
+      if (!sku || !Number.isInteger(quantity) || quantity < 1) {
+        results.push({ row: i + 1, sku, status: "error", message: "Invalid data: SKU and quantity (>0) are required" });
         continue;
       }
 
@@ -461,48 +461,59 @@ export async function registerRoutes(
         continue;
       }
 
-      const loc = await storage.getLocation(sourceLocation);
-      if (!loc) {
-        results.push({ row: i + 1, sku, status: "error", message: `Location "${sourceLocation}" not found` });
-        continue;
-      }
+      if (sourceLocation) {
+        const loc = await storage.getLocation(sourceLocation);
+        if (!loc) {
+          results.push({ row: i + 1, sku, status: "error", message: `Location "${sourceLocation}" not found` });
+          continue;
+        }
 
-      const stockLevel = await storage.getStockLevel(sku, sourceLocation);
-      const currentQty = stockLevel?.quantity || 0;
-      const activeAllocations = await storage.getActiveAllocationsForSku(sku);
-      const allocatedAtLocation = activeAllocations
-        .filter((a: any) => a.sourceLocation === sourceLocation)
-        .reduce((sum: number, a: any) => sum + a.quantity, 0);
-      const available = currentQty - allocatedAtLocation;
+        const stockLevel = await storage.getStockLevel(sku, sourceLocation);
+        const currentQty = stockLevel?.quantity || 0;
+        const activeAllocations = await storage.getActiveAllocationsForSku(sku);
+        const allocatedAtLocation = activeAllocations
+          .filter((a: any) => a.sourceLocation === sourceLocation)
+          .reduce((sum: number, a: any) => sum + a.quantity, 0);
+        const available = currentQty - allocatedAtLocation;
 
-      if (quantity > available) {
-        results.push({ row: i + 1, sku, status: "error", message: `Insufficient stock. Available: ${available}, Requested: ${quantity}` });
-        continue;
+        if (quantity > available) {
+          results.push({ row: i + 1, sku, status: "error", message: `Insufficient stock. Available: ${available}, Requested: ${quantity}` });
+          continue;
+        }
       }
 
       await storage.createAllocation({
         projectId: req.params.id,
         sku,
         quantity,
-        sourceLocation,
-        status: "Reserved",
+        sourceLocation: sourceLocation || null,
+        status: sourceLocation ? "Reserved" : "Pending",
         allocatedBy: req.user?.claims?.email || "system",
         allocatedDate: new Date().toISOString().split("T")[0],
-        notes: "Bulk CSV import",
+        notes: sourceLocation ? "Bulk CSV import" : "Bulk CSV import - location not assigned",
       });
 
       await storage.createAuditEntry({
         userEmail: req.user?.claims?.email || "system",
         actionType: "Allocation",
         sku,
-        locationId: sourceLocation,
+        locationId: sourceLocation || null,
         quantityBefore: null,
         quantityAfter: null,
-        reason: `Reserved ${quantity} for project ${req.params.id} (CSV import)`,
+        reason: sourceLocation
+          ? `Reserved ${quantity} for project ${req.params.id} (CSV import)`
+          : `Allocated ${quantity} for project ${req.params.id} (CSV import, location pending)`,
         notes: null,
       });
 
-      results.push({ row: i + 1, sku, status: "success", message: `Allocated ${quantity} from ${sourceLocation}` });
+      results.push({
+        row: i + 1,
+        sku,
+        status: "success",
+        message: sourceLocation
+          ? `Allocated ${quantity} from ${sourceLocation}`
+          : `Allocated ${quantity} (location not yet assigned)`,
+      });
     }
 
     const successCount = results.filter((r) => r.status === "success").length;
@@ -512,9 +523,9 @@ export async function registerRoutes(
 
   app.post("/api/projects/:id/generate-pick-list", isAuthenticated, async (req: any, res) => {
     const allocs = await storage.getAllocationsByProject(req.params.id);
-    const reserved = allocs.filter((a) => a.status === "Reserved");
+    const reserved = allocs.filter((a) => a.status === "Reserved" && a.sourceLocation);
     if (reserved.length === 0) {
-      return res.status(400).json({ message: "No reserved allocations to generate pick list from" });
+      return res.status(400).json({ message: "No reserved allocations with assigned locations to generate pick list from" });
     }
 
     const created: any[] = [];
@@ -523,7 +534,7 @@ export async function registerRoutes(
         projectId: req.params.id,
         sku: alloc.sku,
         quantityRequested: alloc.quantity,
-        pickFromLocation: alloc.sourceLocation,
+        pickFromLocation: alloc.sourceLocation as string,
         quantityPicked: 0,
         status: "Pending",
         pickedBy: null,

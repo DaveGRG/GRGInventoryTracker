@@ -4,6 +4,12 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-13: CSV import Source Location now optional
+  - CSV upload only requires SKU and Quantity columns; Source Location is optional
+  - Allocations without a source location get status "Pending" instead of "Reserved"
+  - Users can manually assign pull locations later
+  - allocations.sourceLocation is now nullable in the database schema
+  - Pick list generation only includes allocations with assigned locations
 - 2026-02-07: Code review and security hardening
   - Password hashing with bcrypt for app user creation
   - Database transactions for transfer ship/receive/cancel and pick list confirmation

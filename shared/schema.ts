@@ -85,7 +85,7 @@ export const allocations = pgTable("allocations", {
   projectId: text("project_id").notNull().references(() => projects.projectId),
   sku: text("sku").notNull().references(() => inventoryItems.sku),
   quantity: integer("quantity").notNull(),
-  sourceLocation: text("source_location").notNull().references(() => locations.locationId),
+  sourceLocation: text("source_location").references(() => locations.locationId),
   status: text("status").notNull().default("Reserved"),
   allocatedBy: text("allocated_by").notNull(),
   allocatedDate: date("allocated_date").notNull(),
