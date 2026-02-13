@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertInventoryItemSchema, stockLevels, transfers, auditLog, allocations, pickLists } from "@shared/schema";
+import { insertInventoryItemSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
@@ -769,6 +769,184 @@ export async function registerRoutes(
         quantityBefore: null,
         quantityAfter: null,
         reason: `Transfer cancelled: ${transfer.sku} from ${transfer.fromLocation} to ${transfer.toLocation}${wasInTransit ? " (stock returned from Transit)" : ""}`,
+        notes: null,
+      });
+    });
+
+    res.json({ success: true });
+  });
+
+  app.delete("/api/inventory/:sku", isAuthenticated, async (req: any, res) => {
+    const { sku } = req.params;
+    const userEmail = req.user?.claims?.email || "system";
+
+    const item = await storage.getInventoryItem(sku);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    await storage.runTransaction(async (tx) => {
+      const itemAllocations = await tx.select().from(allocations).where(eq(allocations.sku, sku));
+      for (const alloc of itemAllocations) {
+        if (alloc.status === "Reserved" && alloc.sourceLocation) {
+          const sl = await tx.select().from(stockLevels).where(
+            and(eq(stockLevels.sku, sku), eq(stockLevels.locationId, alloc.sourceLocation))
+          );
+          const currentQty = sl[0]?.quantity || 0;
+          await tx.insert(auditLog).values({
+            userEmail,
+            actionType: "Allocation",
+            sku,
+            locationId: alloc.sourceLocation,
+            quantityBefore: currentQty,
+            quantityAfter: currentQty,
+            reason: `Allocation released: ${alloc.quantity} returned to ${alloc.sourceLocation} (item deleted)`,
+            notes: `Project: ${alloc.projectId}`,
+          });
+        }
+        await tx.delete(allocations).where(eq(allocations.id, alloc.id));
+      }
+
+      const itemPicks = await tx.select().from(pickLists).where(eq(pickLists.sku, sku));
+      for (const pick of itemPicks) {
+        await tx.delete(pickLists).where(eq(pickLists.id, pick.id));
+      }
+
+      const itemTransfers = await tx.select().from(transfers).where(eq(transfers.sku, sku));
+      for (const transfer of itemTransfers) {
+        if (transfer.status === "In Transit") {
+          const transitSl = await tx.select().from(stockLevels).where(
+            and(eq(stockLevels.sku, sku), eq(stockLevels.locationId, "TRANSIT"))
+          );
+          const currentTransit = transitSl[0]?.quantity || 0;
+          await upsertStockInTx(tx, sku, "TRANSIT", Math.max(0, currentTransit - transfer.quantity));
+
+          const sourceSl = await tx.select().from(stockLevels).where(
+            and(eq(stockLevels.sku, sku), eq(stockLevels.locationId, transfer.fromLocation))
+          );
+          const currentSource = sourceSl[0]?.quantity || 0;
+          await upsertStockInTx(tx, sku, transfer.fromLocation, currentSource + transfer.quantity);
+
+          await tx.insert(auditLog).values({
+            userEmail,
+            actionType: "Transfer",
+            sku,
+            locationId: transfer.fromLocation,
+            quantityBefore: currentSource,
+            quantityAfter: currentSource + transfer.quantity,
+            reason: `Transfer cancelled: ${transfer.quantity} returned from Transit to ${transfer.fromLocation} (item deleted)`,
+            notes: null,
+          });
+        }
+        await tx.delete(transfers).where(eq(transfers.id, transfer.id));
+      }
+
+      await tx.delete(stockLevels).where(eq(stockLevels.sku, sku));
+      await tx.delete(inventoryItems).where(eq(inventoryItems.sku, sku));
+
+      await tx.insert(auditLog).values({
+        userEmail,
+        actionType: "Item Deleted",
+        sku,
+        locationId: null,
+        quantityBefore: null,
+        quantityAfter: null,
+        reason: `Inventory item deleted: ${item.description}`,
+        notes: null,
+      });
+    });
+
+    res.json({ success: true });
+  });
+
+  app.delete("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+    const projectId = req.params.id as string;
+    const userEmail = req.user?.claims?.email || "system";
+
+    const project = await storage.getProject(projectId);
+    if (!project) return res.status(404).json({ message: "Product not found" });
+
+    await storage.runTransaction(async (tx) => {
+      const projectAllocations = await tx.select().from(allocations).where(eq(allocations.projectId, projectId));
+      for (const alloc of projectAllocations) {
+        if (alloc.status === "Reserved" && alloc.sourceLocation) {
+          const sl = await tx.select().from(stockLevels).where(
+            and(eq(stockLevels.sku, alloc.sku), eq(stockLevels.locationId, alloc.sourceLocation))
+          );
+          const currentQty = sl[0]?.quantity || 0;
+          await tx.insert(auditLog).values({
+            userEmail,
+            actionType: "Allocation",
+            sku: alloc.sku,
+            locationId: alloc.sourceLocation,
+            quantityBefore: currentQty,
+            quantityAfter: currentQty,
+            reason: `Allocation released: ${alloc.quantity} of ${alloc.sku} returned to ${alloc.sourceLocation} (product deleted)`,
+            notes: `Product: ${project.projectName}`,
+          });
+        }
+      }
+
+      await tx.delete(allocations).where(eq(allocations.projectId, projectId));
+      await tx.delete(pickLists).where(eq(pickLists.projectId, projectId));
+      await tx.delete(projects).where(eq(projects.projectId, projectId));
+
+      await tx.insert(auditLog).values({
+        userEmail,
+        actionType: "Product Deleted",
+        sku: null,
+        locationId: null,
+        quantityBefore: null,
+        quantityAfter: null,
+        reason: `Product deleted: ${project.projectName} (${projectId})`,
+        notes: `Client: ${project.client}`,
+      });
+    });
+
+    res.json({ success: true });
+  });
+
+  app.delete("/api/transfers/:id", isAuthenticated, async (req: any, res) => {
+    const transferId = parseInt(req.params.id);
+    const userEmail = req.user?.claims?.email || "system";
+
+    const transfer = await storage.getTransfer(transferId);
+    if (!transfer) return res.status(404).json({ message: "Transfer not found" });
+
+    await storage.runTransaction(async (tx) => {
+      if (transfer.status === "In Transit") {
+        const transitSl = await tx.select().from(stockLevels).where(
+          and(eq(stockLevels.sku, transfer.sku), eq(stockLevels.locationId, "TRANSIT"))
+        );
+        const currentTransit = transitSl[0]?.quantity || 0;
+        await upsertStockInTx(tx, transfer.sku, "TRANSIT", Math.max(0, currentTransit - transfer.quantity));
+
+        const sourceSl = await tx.select().from(stockLevels).where(
+          and(eq(stockLevels.sku, transfer.sku), eq(stockLevels.locationId, transfer.fromLocation))
+        );
+        const currentSource = sourceSl[0]?.quantity || 0;
+        await upsertStockInTx(tx, transfer.sku, transfer.fromLocation, currentSource + transfer.quantity);
+
+        await tx.insert(auditLog).values({
+          userEmail,
+          actionType: "Transfer",
+          sku: transfer.sku,
+          locationId: transfer.fromLocation,
+          quantityBefore: currentSource,
+          quantityAfter: currentSource + transfer.quantity,
+          reason: `Transfer deleted: ${transfer.quantity} returned from Transit to ${transfer.fromLocation}`,
+          notes: null,
+        });
+      }
+
+      await tx.delete(transfers).where(eq(transfers.id, transferId));
+
+      await tx.insert(auditLog).values({
+        userEmail,
+        actionType: "Transfer Deleted",
+        sku: transfer.sku,
+        locationId: transfer.fromLocation,
+        quantityBefore: null,
+        quantityAfter: null,
+        reason: `Transfer deleted: ${transfer.quantity} of ${transfer.sku} from ${transfer.fromLocation} to ${transfer.toLocation} (was ${transfer.status})`,
         notes: null,
       });
     });

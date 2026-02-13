@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ArrowRight, Search, Truck, Package } from "lucide-react";
+import { Plus, ArrowRight, Search, Truck, Package, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Transfer, InventoryItem, Location as LocationType } from "@shared/schema";
@@ -29,6 +30,7 @@ export default function TransfersPage() {
   const [shipDialog, setShipDialog] = useState<Transfer | null>(null);
   const [receiveDialog, setReceiveDialog] = useState<Transfer | null>(null);
   const [receivedQty, setReceivedQty] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<Transfer | null>(null);
   const { toast } = useToast();
 
   const { data: transfersList, isLoading } = useQuery<Transfer[]>({
@@ -104,6 +106,23 @@ export default function TransfersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/transfers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       toast({ title: "Transfer cancelled" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/transfers/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/transfers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({ title: "Transfer deleted", description: "Transfer removed and stock returned if applicable." });
+      setDeleteConfirm(null);
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -189,23 +208,28 @@ export default function TransfersPage() {
                     </div>
                   </div>
 
-                  {transfer.status === "Requested" && (
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t">
-                      <Button size="sm" onClick={() => setShipDialog(transfer)} data-testid={`button-ship-${transfer.id}`}>
-                        <Truck className="h-3.5 w-3.5 mr-1" /> Ship
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => cancelMutation.mutate(transfer.id)} data-testid={`button-cancel-transfer-${transfer.id}`}>
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-                  {transfer.status === "In Transit" && (
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t">
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t">
+                    {transfer.status === "Requested" && (
+                      <>
+                        <Button size="sm" onClick={() => setShipDialog(transfer)} data-testid={`button-ship-${transfer.id}`}>
+                          <Truck className="h-3.5 w-3.5 mr-1" /> Ship
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelMutation.mutate(transfer.id)} data-testid={`button-cancel-transfer-${transfer.id}`}>
+                          Cancel
+                        </Button>
+                      </>
+                    )}
+                    {transfer.status === "In Transit" && (
                       <Button size="sm" onClick={() => { setReceiveDialog(transfer); setReceivedQty(String(transfer.quantity)); }} data-testid={`button-receive-${transfer.id}`}>
                         <Package className="h-3.5 w-3.5 mr-1" /> Receive
                       </Button>
+                    )}
+                    <div className="ml-auto">
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteConfirm(transfer)} data-testid={`button-delete-transfer-${transfer.id}`}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             ))
@@ -314,6 +338,29 @@ export default function TransfersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transfer</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the transfer of <span className="font-mono font-semibold">{deleteConfirm?.sku}</span> ({deleteConfirm?.quantity} pcs).
+              {deleteConfirm?.status === "In Transit" && " Stock currently in transit will be returned to the source location."}
+              {" "}This action is recorded in the audit trail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-transfer">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-transfer"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete Transfer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </div>

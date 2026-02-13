@@ -15,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, ChevronDown, ChevronRight, Filter, X, Minus, Plus, ClipboardCheck, PlusCircle } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Filter, X, Minus, Plus, ClipboardCheck, PlusCircle, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +49,7 @@ export default function InventoryPage() {
   const [adjustQuantity, setAdjustQuantity] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustNotes, setAdjustNotes] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [newItemDialog, setNewItemDialog] = useState(false);
   const [newSku, setNewSku] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -132,6 +134,23 @@ export default function InventoryPage() {
       toast({ title: "Stock adjusted", description: "Count updated successfully." });
       setAdjustDialog(false);
       setSelectedItem(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: async (sku: string) => {
+      const res = await apiRequest("DELETE", `/api/inventory/${sku}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({ title: "Item deleted", description: "Inventory item and related data removed." });
+      setSelectedItem(null);
+      setDeleteConfirm(false);
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -424,11 +443,39 @@ export default function InventoryPage() {
                 <Button variant="outline" className="flex-1" asChild data-testid="button-create-transfer">
                   <Link href={`/transfers/new?sku=${selectedItem.sku}`}>Transfer</Link>
                 </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => setDeleteConfirm(true)}
+                  data-testid="button-delete-item"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </DialogFooter>
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Inventory Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <span className="font-mono font-semibold">{selectedItem?.sku}</span> and remove all associated stock levels, allocations, transfers, and pick lists. Any reserved allocations will be released. This action is recorded in the audit trail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-item">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedItem && deleteItemMutation.mutate(selectedItem.sku)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-item"
+            >
+              {deleteItemMutation.isPending ? "Deleting..." : "Delete Item"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={adjustDialog} onOpenChange={setAdjustDialog}>
         <DialogContent className="max-w-sm">

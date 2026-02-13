@@ -4,6 +4,13 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-13: Delete functionality for inventory items, products, and transfers
+  - DELETE /api/inventory/:sku with cascading deletes for allocations, transfers, pick lists, stock levels
+  - DELETE /api/projects/:id returns Reserved allocation stock to source locations
+  - DELETE /api/transfers/:id returns In Transit stock from Transit to source location
+  - All deletes wrapped in database transactions with audit trail logging
+  - Confirmation dialogs (AlertDialog) on inventory detail, product detail, and transfers pages
+  - Action types added to schema: "Item Deleted", "Product Deleted", "Transfer Deleted"
 - 2026-02-13: Location simplification
   - Merged 4 Farm zones (FARM-SS, FARM-LB, FARM-YD, FARM-CC) into single "FARM" location
   - Renamed MKE-SHOP to "MKE"

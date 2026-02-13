@@ -22,6 +22,9 @@ export interface IStorage {
   createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem>;
   updateInventoryItem(sku: string, data: Partial<InsertInventoryItem>): Promise<InventoryItem | undefined>;
 
+  deleteInventoryItem(sku: string): Promise<void>;
+  deleteStockLevelsByItem(sku: string): Promise<void>;
+
   getLocations(): Promise<Location[]>;
   getLocation(id: string): Promise<Location | undefined>;
   createLocation(loc: InsertLocation): Promise<Location>;
@@ -43,10 +46,16 @@ export interface IStorage {
   updateAllocation(id: number, data: Partial<InsertAllocation>): Promise<Allocation | undefined>;
   getActiveAllocationsForSku(sku: string): Promise<Allocation[]>;
 
+  deleteProject(id: string): Promise<void>;
+  deleteAllocationsByProject(projectId: string): Promise<void>;
+  deletePickListsByProject(projectId: string): Promise<void>;
+
   getTransfers(): Promise<Transfer[]>;
   getTransfer(id: number): Promise<Transfer | undefined>;
   createTransfer(t: InsertTransfer): Promise<Transfer>;
   updateTransfer(id: number, data: Partial<InsertTransfer>): Promise<Transfer | undefined>;
+
+  deleteTransfer(id: number): Promise<void>;
 
   getPickLists(): Promise<PickList[]>;
   getPickListsByProject(projectId: string): Promise<PickList[]>;
@@ -84,6 +93,14 @@ export class DatabaseStorage implements IStorage {
   async updateInventoryItem(sku: string, data: Partial<InsertInventoryItem>): Promise<InventoryItem | undefined> {
     const [updated] = await db.update(inventoryItems).set({ ...data, updatedAt: new Date() }).where(eq(inventoryItems.sku, sku)).returning();
     return updated || undefined;
+  }
+
+  async deleteInventoryItem(sku: string): Promise<void> {
+    await db.delete(inventoryItems).where(eq(inventoryItems.sku, sku));
+  }
+
+  async deleteStockLevelsByItem(sku: string): Promise<void> {
+    await db.delete(stockLevels).where(eq(stockLevels.sku, sku));
   }
 
   async getLocations(): Promise<Location[]> {
@@ -177,6 +194,18 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
+  async deleteProject(id: string): Promise<void> {
+    await db.delete(projects).where(eq(projects.projectId, id));
+  }
+
+  async deleteAllocationsByProject(projectId: string): Promise<void> {
+    await db.delete(allocations).where(eq(allocations.projectId, projectId));
+  }
+
+  async deletePickListsByProject(projectId: string): Promise<void> {
+    await db.delete(pickLists).where(eq(pickLists.projectId, projectId));
+  }
+
   async getTransfers(): Promise<Transfer[]> {
     return db.select().from(transfers).orderBy(desc(transfers.id));
   }
@@ -194,6 +223,10 @@ export class DatabaseStorage implements IStorage {
   async updateTransfer(id: number, data: Partial<InsertTransfer>): Promise<Transfer | undefined> {
     const [updated] = await db.update(transfers).set(data).where(eq(transfers.id, id)).returning();
     return updated || undefined;
+  }
+
+  async deleteTransfer(id: number): Promise<void> {
+    await db.delete(transfers).where(eq(transfers.id, id));
   }
 
   async getPickLists(): Promise<PickList[]> {

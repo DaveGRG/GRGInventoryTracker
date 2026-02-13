@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus, User, MapPin, Calendar, CheckCircle2, Upload, FileSpreadsheet, AlertCircle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Plus, User, MapPin, Calendar, CheckCircle2, Upload, FileSpreadsheet, AlertCircle, CheckCircle, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +65,7 @@ export default function ProjectDetailPage() {
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [csvParsedRows, setCsvParsedRows] = useState<{ sku: string; quantity: string; sourceLocation: string }[]>([]);
   const [csvResults, setCsvResults] = useState<BulkResult[] | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
@@ -168,6 +170,24 @@ export default function ProjectDetailPage() {
     },
   });
 
+  const deleteProjectMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/projects/${projectId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+      toast({ title: "Product deleted", description: "Product and all related data removed." });
+      navigate("/products");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -262,7 +282,18 @@ export default function ProjectDetailPage() {
               )}
             </div>
             {project.notes && <p className="text-sm text-muted-foreground">{project.notes}</p>}
-            <p className="text-xs font-mono text-muted-foreground">{project.projectId}</p>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-xs font-mono text-muted-foreground">{project.projectId}</p>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteConfirm(true)}
+                data-testid="button-delete-product"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -537,6 +568,27 @@ export default function ProjectDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <span className="font-semibold">{project?.projectName}</span> and remove all allocations and pick lists. Any reserved material will be released back to its source location. This action is recorded in the audit trail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-product">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteProjectMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-product"
+            >
+              {deleteProjectMutation.isPending ? "Deleting..." : "Delete Product"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </div>
