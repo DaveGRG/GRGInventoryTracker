@@ -45,7 +45,6 @@ const confirmPickSchema = z.object({
 const bulkAllocationRowSchema = z.object({
   sku: z.string(),
   quantity: z.union([z.string(), z.number()]),
-  sourceLocation: z.string().optional().default(""),
 });
 
 const bulkAllocationsSchema = z.object({
@@ -448,17 +447,13 @@ export async function registerRoutes(
       const sku = (row.sku || "").trim();
       const rawQty = String(row.quantity).trim();
       const quantity = Number(rawQty);
-      const csvSourceLocation = (row.sourceLocation || "").trim();
-      let effectiveLocation = csvSourceLocation;
-      if (!effectiveLocation) {
-        const allLocs = await storage.getLocations();
-        const hubLoc = allLocs.find((l) => l.hub === project.assignedHub && l.locationId !== "TRANSIT");
-        if (!hubLoc) {
-          results.push({ row: i + 1, sku, status: "error", message: `No location found for hub "${project.assignedHub}"` });
-          continue;
-        }
-        effectiveLocation = hubLoc.locationId;
+      const allLocs = await storage.getLocations();
+      const hubLoc = allLocs.find((l) => l.hub === project.assignedHub && l.locationId !== "TRANSIT");
+      if (!hubLoc) {
+        results.push({ row: i + 1, sku, status: "error", message: `No location found for hub "${project.assignedHub}"` });
+        continue;
       }
+      const effectiveLocation = hubLoc.locationId;
 
       if (!sku || !Number.isInteger(quantity) || quantity < 1) {
         results.push({ row: i + 1, sku, status: "error", message: "Invalid data: SKU and quantity (>0) are required" });
@@ -498,7 +493,7 @@ export async function registerRoutes(
         status: "Reserved",
         allocatedBy: req.user?.claims?.email || "system",
         allocatedDate: new Date().toISOString().split("T")[0],
-        notes: csvSourceLocation ? "Bulk CSV import" : `Bulk CSV import - auto-assigned to ${effectiveLocation}`,
+        notes: `Bulk CSV import - assigned to ${effectiveLocation}`,
       });
 
       await storage.createAuditEntry({

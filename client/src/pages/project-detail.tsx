@@ -28,14 +28,13 @@ interface BulkResult {
   message: string;
 }
 
-function parseCSV(text: string): { sku: string; quantity: string; sourceLocation: string }[] {
+function parseCSV(text: string): { sku: string; quantity: string }[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
 
   const header = lines[0].toLowerCase().split(",").map((h) => h.trim());
   const skuIdx = header.findIndex((h) => h === "sku" || h === "item" || h === "material");
   const qtyIdx = header.findIndex((h) => h === "quantity" || h === "qty" || h === "amount");
-  const locIdx = header.findIndex((h) => h === "source location" || h === "sourcelocation" || h === "location" || h === "from" || h === "source_location");
 
   if (skuIdx === -1 || qtyIdx === -1) return [];
 
@@ -44,7 +43,6 @@ function parseCSV(text: string): { sku: string; quantity: string; sourceLocation
     return {
       sku: cols[skuIdx] || "",
       quantity: cols[qtyIdx] || "",
-      sourceLocation: locIdx !== -1 ? (cols[locIdx] || "") : "",
     };
   }).filter((r) => r.sku || r.quantity);
 }
@@ -61,7 +59,7 @@ export default function ProjectDetailPage() {
   const [allocLocation, setAllocLocation] = useState("");
   const [checkedAllocations, setCheckedAllocations] = useState<Set<number>>(new Set());
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
-  const [csvParsedRows, setCsvParsedRows] = useState<{ sku: string; quantity: string; sourceLocation: string }[]>([]);
+  const [csvParsedRows, setCsvParsedRows] = useState<{ sku: string; quantity: string }[]>([]);
   const [csvResults, setCsvResults] = useState<BulkResult[] | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -122,7 +120,7 @@ export default function ProjectDetailPage() {
   });
 
   const bulkAllocateMutation = useMutation({
-    mutationFn: async (rows: { sku: string; quantity: string; sourceLocation: string }[]) => {
+    mutationFn: async (rows: { sku: string; quantity: string }[]) => {
       const res = await apiRequest("POST", `/api/projects/${projectId}/allocations/bulk`, {
         allocations: rows,
       });
@@ -173,7 +171,7 @@ export default function ProjectDetailPage() {
       if (rows.length === 0) {
         toast({
           title: "Invalid CSV",
-          description: "Could not parse CSV. Make sure it has columns: SKU and Quantity. Source Location is optional.",
+          description: "Could not parse CSV. Make sure it has columns: SKU and Quantity.",
           variant: "destructive",
         });
         return;
@@ -478,16 +476,14 @@ export default function ProjectDetailPage() {
           ) : (
             <ScrollArea className="flex-1 min-h-0">
               <div className="space-y-1 pr-3">
-                <div className="grid grid-cols-3 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
+                <div className="grid grid-cols-2 gap-2 text-xs font-medium text-muted-foreground pb-1 border-b">
                   <span>SKU</span>
                   <span>Qty</span>
-                  <span>Location</span>
                 </div>
                 {csvParsedRows.map((row, i) => (
-                  <div key={i} className="grid grid-cols-3 gap-2 text-sm py-1.5 border-b last:border-0" data-testid={`csv-preview-row-${i}`}>
+                  <div key={i} className="grid grid-cols-2 gap-2 text-sm py-1.5 border-b last:border-0" data-testid={`csv-preview-row-${i}`}>
                     <span className="font-mono text-xs truncate">{row.sku}</span>
                     <span className="tabular-nums">{row.quantity}</span>
-                    <span className="text-xs truncate">{row.sourceLocation || "Not assigned"}</span>
                   </div>
                 ))}
               </div>

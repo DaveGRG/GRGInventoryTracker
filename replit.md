@@ -26,12 +26,11 @@ A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory 
   - Inventory page now shows flat item list per hub (no zone groupings)
   - All frontend location filters use `locationId !== "TRANSIT"` instead of `zoneType !== "Virtual"`
   - Database migration merged all zone stock levels into FARM
-- 2026-02-13: CSV import Source Location now optional
-  - CSV upload only requires SKU and Quantity columns; Source Location is optional
-  - Allocations without a source location get status "Pending" instead of "Reserved"
-  - Users can manually assign pull locations later
-  - allocations.sourceLocation is now nullable in the database schema
-  - Pick list generation only includes allocations with assigned locations
+- 2026-02-13: CSV import simplified
+  - CSV upload only requires SKU and Quantity columns
+  - Source location auto-assigned from product's hub (Farm or MKE)
+  - All CSV-imported allocations get status "Reserved" and are immediately pullable
+  - allocations.sourceLocation is nullable in the database schema
 - 2026-02-07: Code review and security hardening
   - Password hashing with bcrypt for app user creation
   - Database transactions for transfer ship/receive/cancel and pick list confirmation
@@ -111,5 +110,5 @@ A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory 
 - All stock changes write to audit log - no silent changes
 - Bottom navigation with 5 tabs: Dashboard, Inventory, Products, Transfers, More
 - "More" page provides access to Audit Log, User Management, Par Level Report, Par Levels, Physical Count
-- CSV import accepts columns: SKU (or Item/Material), Quantity (or Qty/Amount), Source Location (or Location/From)
+- CSV import accepts columns: SKU (or Item/Material) and Quantity (or Qty/Amount); source location auto-assigned from product hub
 - User refers to "Projects" as "Products" - labels updated throughout UI, database columns unchanged
