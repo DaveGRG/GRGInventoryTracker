@@ -929,19 +929,21 @@ export async function registerRoutes(
     await storage.runTransaction(async (tx) => {
       const projectAllocations = await tx.select().from(allocations).where(eq(allocations.projectId, projectId));
       for (const alloc of projectAllocations) {
-        if (alloc.status === "Reserved" && alloc.sourceLocation) {
+        if (alloc.status === "Pulled" && alloc.sourceLocation) {
           const sl = await tx.select().from(stockLevels).where(
             and(eq(stockLevels.sku, alloc.sku), eq(stockLevels.locationId, alloc.sourceLocation))
           );
           const currentQty = sl[0]?.quantity || 0;
+          const newQty = currentQty + alloc.quantity;
+          await upsertStockInTx(tx, alloc.sku, alloc.sourceLocation, newQty);
           await tx.insert(auditLog).values({
             userEmail,
-            actionType: "Allocation",
+            actionType: "Stock Return",
             sku: alloc.sku,
             locationId: alloc.sourceLocation,
             quantityBefore: currentQty,
-            quantityAfter: currentQty,
-            reason: `Allocation released: ${alloc.quantity} of ${alloc.sku} returned to ${alloc.sourceLocation} (product deleted)`,
+            quantityAfter: newQty,
+            reason: `Pulled stock returned: ${alloc.quantity} of ${alloc.sku} back to ${alloc.sourceLocation} (product deleted)`,
             notes: `Product: ${project.projectName}`,
           });
         }

@@ -13,7 +13,7 @@ A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory 
   - Only Reserved and Pending allocations with assigned source locations are pullable
 - 2026-02-13: Delete functionality for inventory items, products, and transfers
   - DELETE /api/inventory/:sku with cascading deletes for allocations, transfers, pick lists, stock levels
-  - DELETE /api/projects/:id returns Reserved allocation stock to source locations
+  - DELETE /api/projects/:id returns Pulled allocation stock to source locations (physical stock return with audit trail)
   - DELETE /api/transfers/:id returns In Transit stock from Transit to source location
   - All deletes wrapped in database transactions with audit trail logging
   - Confirmation dialogs (AlertDialog) on inventory detail, product detail, and transfers pages

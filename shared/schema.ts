@@ -25,7 +25,7 @@ export const pickListStatusEnum = ["Pending", "In Progress", "Completed", "Cance
 export const actionTypeEnum = [
   "Stock Adjustment", "Transfer", "Allocation", "Pick",
   "Physical Count", "Item Created", "Item Updated",
-  "Item Deleted", "Product Deleted", "Transfer Deleted",
+  "Item Deleted", "Product Deleted", "Transfer Deleted", "Stock Return",
 ] as const;
 export const userRoleEnum = ["Admin", "Shop Lead", "Project Admin", "Field Crew"] as const;
 export const assignedHubEnum = ["All", "Farm", "MKE"] as const;
