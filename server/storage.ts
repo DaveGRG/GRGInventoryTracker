@@ -165,8 +165,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getNextProjectId(): Promise<string> {
-    const result = await db.select({ count: sql<number>`count(*)` }).from(projects);
-    const num = (result[0]?.count || 0) + 1;
+    const result = await db.select({ maxId: sql<string>`max(project_id)` }).from(projects);
+    const maxId = result[0]?.maxId;
+    let num = 1;
+    if (maxId) {
+      const match = maxId.match(/PRJ-(\d+)/);
+      if (match) {
+        num = parseInt(match[1], 10) + 1;
+      }
+    }
     return `PRJ-${String(num).padStart(3, "0")}`;
   }
 
