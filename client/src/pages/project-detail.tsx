@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Plus, User, MapPin, Calendar, Upload, FileSpreadsheet, AlertCircle, CheckCircle, Trash2, PackageCheck } from "lucide-react";
+import { useMemo } from "react";
+import { ArrowLeft, Plus, User, MapPin, Calendar, Upload, FileSpreadsheet, AlertCircle, CheckCircle, Trash2, PackageCheck, AlertTriangle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -80,6 +81,10 @@ export default function ProjectDetailPage() {
 
   const { data: locationsList } = useQuery<LocationType[]>({
     queryKey: ["/api/locations"],
+  });
+
+  const { data: inventoryData } = useQuery<any[]>({
+    queryKey: ["/api/inventory"],
   });
 
   const allocateMutation = useMutation({
@@ -184,7 +189,27 @@ export default function ProjectDetailPage() {
     if (csvInputRef.current) csvInputRef.current.value = "";
   };
 
-  const pullableAllocations = allocationsData?.filter((a) => (a.status === "Reserved" || a.status === "Pending") && a.sourceLocation) || [];
+  const stockMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (inventoryData) {
+      for (const item of inventoryData) {
+        for (const sl of item.stockLevels || []) {
+          map[`${item.sku}::${sl.locationId}`] = sl.quantity || 0;
+        }
+      }
+    }
+    return map;
+  }, [inventoryData]);
+
+  const hasInsufficientStock = (alloc: Allocation): boolean => {
+    if (!alloc.sourceLocation) return false;
+    const available = stockMap[`${alloc.sku}::${alloc.sourceLocation}`] ?? 0;
+    return alloc.quantity > available;
+  };
+
+  const pullableAllocations = allocationsData?.filter((a) =>
+    (a.status === "Reserved" || a.status === "Pending") && a.sourceLocation && !hasInsufficientStock(a)
+  ) || [];
 
   const toggleAllocation = (id: number) => {
     setCheckedAllocations((prev) => {
@@ -350,10 +375,17 @@ export default function ProjectDetailPage() {
           ) : (
             <div className="space-y-2">
               {allocationsData?.map((alloc) => {
-                const isPullable = (alloc.status === "Reserved" || alloc.status === "Pending") && !!alloc.sourceLocation;
+                const isReservedOrPending = (alloc.status === "Reserved" || alloc.status === "Pending") && !!alloc.sourceLocation;
+                const insufficientStock = isReservedOrPending && hasInsufficientStock(alloc);
+                const isPullable = isReservedOrPending && !insufficientStock;
                 const isChecked = checkedAllocations.has(alloc.id);
+                const available = alloc.sourceLocation ? (stockMap[`${alloc.sku}::${alloc.sourceLocation}`] ?? 0) : 0;
                 return (
-                  <Card key={alloc.id} data-testid={`card-allocation-${alloc.id}`}>
+                  <Card
+                    key={alloc.id}
+                    data-testid={`card-allocation-${alloc.id}`}
+                    className={insufficientStock ? "border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-950/30" : ""}
+                  >
                     <CardContent className="p-3">
                       <div className="flex items-center gap-3">
                         {isPullable ? (
@@ -362,14 +394,21 @@ export default function ProjectDetailPage() {
                             onCheckedChange={() => toggleAllocation(alloc.id)}
                             data-testid={`checkbox-allocation-${alloc.id}`}
                           />
+                        ) : insufficientStock ? (
+                          <AlertTriangle className="h-4 w-4 text-red-500 dark:text-red-400 flex-shrink-0" />
                         ) : (
                           <div className="w-4" />
                         )}
                         <div className="min-w-0 flex-1">
-                          <span className="text-sm font-mono font-medium">{alloc.sku}</span>
+                          <span className={`text-sm font-mono font-medium ${insufficientStock ? "text-red-700 dark:text-red-400" : ""}`}>{alloc.sku}</span>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-xs text-muted-foreground">Qty: {alloc.quantity}</span>
-                            <span className="text-xs text-muted-foreground">From: {alloc.sourceLocation || "Not assigned"}</span>
+                            <span className={`text-xs ${insufficientStock ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>Qty: {alloc.quantity}</span>
+                            <span className={`text-xs ${insufficientStock ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>From: {alloc.sourceLocation || "Not assigned"}</span>
+                            {insufficientStock && (
+                              <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                                (Only {available} available)
+                              </span>
+                            )}
                           </div>
                         </div>
                         <StatusBadge status={alloc.status} type="allocation" />

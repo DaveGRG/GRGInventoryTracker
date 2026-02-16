@@ -466,25 +466,6 @@ export async function registerRoutes(
         continue;
       }
 
-      const loc = await storage.getLocation(effectiveLocation);
-      if (!loc) {
-        results.push({ row: i + 1, sku, status: "error", message: `Location "${effectiveLocation}" not found` });
-        continue;
-      }
-
-      const stockLevel = await storage.getStockLevel(sku, effectiveLocation);
-      const currentQty = stockLevel?.quantity || 0;
-      const activeAllocations = await storage.getActiveAllocationsForSku(sku);
-      const allocatedAtLocation = activeAllocations
-        .filter((a: any) => a.sourceLocation === effectiveLocation)
-        .reduce((sum: number, a: any) => sum + a.quantity, 0);
-      const available = currentQty - allocatedAtLocation;
-
-      if (quantity > available) {
-        results.push({ row: i + 1, sku, status: "error", message: `Insufficient stock. Available: ${available}, Requested: ${quantity}` });
-        continue;
-      }
-
       await storage.createAllocation({
         projectId: req.params.id,
         sku,
