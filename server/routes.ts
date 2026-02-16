@@ -448,7 +448,17 @@ export async function registerRoutes(
       const sku = (row.sku || "").trim();
       const rawQty = String(row.quantity).trim();
       const quantity = Number(rawQty);
-      const sourceLocation = (row.sourceLocation || "").trim();
+      const csvSourceLocation = (row.sourceLocation || "").trim();
+      let effectiveLocation = csvSourceLocation;
+      if (!effectiveLocation) {
+        const allLocs = await storage.getLocations();
+        const hubLoc = allLocs.find((l) => l.hub === project.assignedHub && l.locationId !== "TRANSIT");
+        if (!hubLoc) {
+          results.push({ row: i + 1, sku, status: "error", message: `No location found for hub "${project.assignedHub}"` });
+          continue;
+        }
+        effectiveLocation = hubLoc.locationId;
+      }
 
       if (!sku || !Number.isInteger(quantity) || quantity < 1) {
         results.push({ row: i + 1, sku, status: "error", message: "Invalid data: SKU and quantity (>0) are required" });
@@ -461,48 +471,44 @@ export async function registerRoutes(
         continue;
       }
 
-      if (sourceLocation) {
-        const loc = await storage.getLocation(sourceLocation);
-        if (!loc) {
-          results.push({ row: i + 1, sku, status: "error", message: `Location "${sourceLocation}" not found` });
-          continue;
-        }
+      const loc = await storage.getLocation(effectiveLocation);
+      if (!loc) {
+        results.push({ row: i + 1, sku, status: "error", message: `Location "${effectiveLocation}" not found` });
+        continue;
+      }
 
-        const stockLevel = await storage.getStockLevel(sku, sourceLocation);
-        const currentQty = stockLevel?.quantity || 0;
-        const activeAllocations = await storage.getActiveAllocationsForSku(sku);
-        const allocatedAtLocation = activeAllocations
-          .filter((a: any) => a.sourceLocation === sourceLocation)
-          .reduce((sum: number, a: any) => sum + a.quantity, 0);
-        const available = currentQty - allocatedAtLocation;
+      const stockLevel = await storage.getStockLevel(sku, effectiveLocation);
+      const currentQty = stockLevel?.quantity || 0;
+      const activeAllocations = await storage.getActiveAllocationsForSku(sku);
+      const allocatedAtLocation = activeAllocations
+        .filter((a: any) => a.sourceLocation === effectiveLocation)
+        .reduce((sum: number, a: any) => sum + a.quantity, 0);
+      const available = currentQty - allocatedAtLocation;
 
-        if (quantity > available) {
-          results.push({ row: i + 1, sku, status: "error", message: `Insufficient stock. Available: ${available}, Requested: ${quantity}` });
-          continue;
-        }
+      if (quantity > available) {
+        results.push({ row: i + 1, sku, status: "error", message: `Insufficient stock. Available: ${available}, Requested: ${quantity}` });
+        continue;
       }
 
       await storage.createAllocation({
         projectId: req.params.id,
         sku,
         quantity,
-        sourceLocation: sourceLocation || null,
-        status: sourceLocation ? "Reserved" : "Pending",
+        sourceLocation: effectiveLocation,
+        status: "Reserved",
         allocatedBy: req.user?.claims?.email || "system",
         allocatedDate: new Date().toISOString().split("T")[0],
-        notes: sourceLocation ? "Bulk CSV import" : "Bulk CSV import - location not assigned",
+        notes: csvSourceLocation ? "Bulk CSV import" : `Bulk CSV import - auto-assigned to ${effectiveLocation}`,
       });
 
       await storage.createAuditEntry({
         userEmail: req.user?.claims?.email || "system",
         actionType: "Allocation",
         sku,
-        locationId: sourceLocation || null,
+        locationId: effectiveLocation,
         quantityBefore: null,
         quantityAfter: null,
-        reason: sourceLocation
-          ? `Reserved ${quantity} for project ${req.params.id} (CSV import)`
-          : `Allocated ${quantity} for project ${req.params.id} (CSV import, location pending)`,
+        reason: `Reserved ${quantity} from ${effectiveLocation} for project ${req.params.id} (CSV import)`,
         notes: null,
       });
 
@@ -510,9 +516,7 @@ export async function registerRoutes(
         row: i + 1,
         sku,
         status: "success",
-        message: sourceLocation
-          ? `Allocated ${quantity} from ${sourceLocation}`
-          : `Allocated ${quantity} (location not yet assigned)`,
+        message: `Reserved ${quantity} from ${effectiveLocation}`,
       });
     }
 
