@@ -4,6 +4,13 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-16: Replaced pick list workflow with inline checkbox pull system
+  - Each material allocation line item on product detail page now has a checkbox
+  - "Select all" checkbox and "Submit Pulled" button for batch stock deduction
+  - POST /api/projects/:id/allocations/pull-batch endpoint with aggregated stock validation
+  - Removed Generate Pick List button and Pick Lists tab from product detail page
+  - Validates combined quantities per SKU/location to prevent over-pulling
+  - Only Reserved and Pending allocations with assigned source locations are pullable
 - 2026-02-13: Delete functionality for inventory items, products, and transfers
   - DELETE /api/inventory/:sku with cascading deletes for allocations, transfers, pick lists, stock levels
   - DELETE /api/projects/:id returns Reserved allocation stock to source locations

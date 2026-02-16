@@ -12,14 +12,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus, User, MapPin, Calendar, CheckCircle2, Upload, FileSpreadsheet, AlertCircle, CheckCircle, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Plus, User, MapPin, Calendar, Upload, FileSpreadsheet, AlertCircle, CheckCircle, Trash2, PackageCheck } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Project, Allocation, PickList, InventoryItem, Location as LocationType } from "@shared/schema";
+import type { Project, Allocation, InventoryItem, Location as LocationType } from "@shared/schema";
 
 interface BulkResult {
   row: number;
@@ -59,9 +59,7 @@ export default function ProjectDetailPage() {
   const [allocSku, setAllocSku] = useState("");
   const [allocQty, setAllocQty] = useState("");
   const [allocLocation, setAllocLocation] = useState("");
-  const [confirmPickOpen, setConfirmPickOpen] = useState(false);
-  const [selectedPick, setSelectedPick] = useState<PickList | null>(null);
-  const [pickedQty, setPickedQty] = useState("");
+  const [checkedAllocations, setCheckedAllocations] = useState<Set<number>>(new Set());
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [csvParsedRows, setCsvParsedRows] = useState<{ sku: string; quantity: string; sourceLocation: string }[]>([]);
   const [csvResults, setCsvResults] = useState<BulkResult[] | null>(null);
@@ -75,11 +73,6 @@ export default function ProjectDetailPage() {
 
   const { data: allocationsData } = useQuery<Allocation[]>({
     queryKey: [`/api/projects/${projectId}/allocations`, projectId],
-    enabled: !!projectId,
-  });
-
-  const { data: pickListsData } = useQuery<PickList[]>({
-    queryKey: [`/api/projects/${projectId}/pick-lists`, projectId],
     enabled: !!projectId,
   });
 
@@ -111,35 +104,17 @@ export default function ProjectDetailPage() {
     },
   });
 
-  const generatePickListMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/projects/${projectId}/generate-pick-list`);
+  const pullBatchMutation = useMutation({
+    mutationFn: async (allocationIds: number[]) => {
+      const res = await apiRequest("POST", `/api/projects/${projectId}/allocations/pull-batch`, { allocationIds });
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/pick-lists`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/allocations`] });
-      toast({ title: "Pick list generated" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const confirmPickMutation = useMutation({
-    mutationFn: async (data: { pickListId: number; quantityPicked: number }) => {
-      const res = await apiRequest("POST", `/api/pick-lists/${data.pickListId}/confirm`, { quantityPicked: data.quantityPicked });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/pick-lists`] });
+    onSuccess: (data: { pulledCount: number }) => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/allocations`] });
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      toast({ title: "Pick confirmed", description: "Stock has been updated." });
-      setConfirmPickOpen(false);
-      setSelectedPick(null);
-      setPickedQty("");
+      toast({ title: "Materials pulled", description: `${data.pulledCount} item${data.pulledCount !== 1 ? "s" : ""} pulled from inventory.` });
+      setCheckedAllocations(new Set());
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -211,7 +186,24 @@ export default function ProjectDetailPage() {
     if (csvInputRef.current) csvInputRef.current.value = "";
   };
 
-  const reservedAllocations = allocationsData?.filter((a) => a.status === "Reserved") || [];
+  const pullableAllocations = allocationsData?.filter((a) => (a.status === "Reserved" || a.status === "Pending") && a.sourceLocation) || [];
+
+  const toggleAllocation = (id: number) => {
+    setCheckedAllocations((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (checkedAllocations.size === pullableAllocations.length) {
+      setCheckedAllocations(new Set());
+    } else {
+      setCheckedAllocations(new Set(pullableAllocations.map((a) => a.id)));
+    }
+  };
 
   if (projectLoading) {
     return (
@@ -297,17 +289,9 @@ export default function ProjectDetailPage() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="materials">
-          <TabsList className="w-full">
-            <TabsTrigger value="materials" className="flex-1" data-testid="tab-materials">
-              Materials ({allocationsData?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="picks" className="flex-1" data-testid="tab-picks">
-              Pick Lists ({pickListsData?.length || 0})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="materials" className="space-y-3 mt-3">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <h3 className="text-sm font-semibold">Materials ({allocationsData?.length || 0})</h3>
             <div className="flex items-center gap-2 flex-wrap">
               <Button size="sm" onClick={() => setAllocateOpen(true)} data-testid="button-add-material">
                 <Plus className="h-4 w-4 mr-1" />
@@ -330,32 +314,62 @@ export default function ProjectDetailPage() {
                 onChange={handleCsvFileChange}
                 data-testid="input-csv-file"
               />
-              {reservedAllocations.length > 0 && (
+            </div>
+          </div>
+
+          {pullableAllocations.length > 0 && (
+            <div className="flex items-center justify-between gap-2 p-2 rounded-md border bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={checkedAllocations.size === pullableAllocations.length && pullableAllocations.length > 0}
+                  onCheckedChange={toggleAll}
+                  data-testid="checkbox-select-all"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {checkedAllocations.size > 0
+                    ? `${checkedAllocations.size} of ${pullableAllocations.length} selected`
+                    : "Select all"}
+                </span>
+              </div>
+              {checkedAllocations.size > 0 && (
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => generatePickListMutation.mutate()}
-                  disabled={generatePickListMutation.isPending}
-                  data-testid="button-generate-pick-list"
+                  onClick={() => pullBatchMutation.mutate(Array.from(checkedAllocations))}
+                  disabled={pullBatchMutation.isPending}
+                  data-testid="button-submit-pulled"
                 >
-                  {generatePickListMutation.isPending ? "Generating..." : "Generate Pick List"}
+                  <PackageCheck className="h-4 w-4 mr-1" />
+                  {pullBatchMutation.isPending ? "Pulling..." : `Submit Pulled (${checkedAllocations.size})`}
                 </Button>
               )}
             </div>
+          )}
 
-            {allocationsData?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No materials allocated yet
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {allocationsData?.map((alloc) => (
+          {allocationsData?.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              No materials allocated yet
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {allocationsData?.map((alloc) => {
+                const isPullable = (alloc.status === "Reserved" || alloc.status === "Pending") && !!alloc.sourceLocation;
+                const isChecked = checkedAllocations.has(alloc.id);
+                return (
                   <Card key={alloc.id} data-testid={`card-allocation-${alloc.id}`}>
                     <CardContent className="p-3">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        {isPullable ? (
+                          <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={() => toggleAllocation(alloc.id)}
+                            data-testid={`checkbox-allocation-${alloc.id}`}
+                          />
+                        ) : (
+                          <div className="w-4" />
+                        )}
                         <div className="min-w-0 flex-1">
                           <span className="text-sm font-mono font-medium">{alloc.sku}</span>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className="text-xs text-muted-foreground">Qty: {alloc.quantity}</span>
                             <span className="text-xs text-muted-foreground">From: {alloc.sourceLocation || "Not assigned"}</span>
                           </div>
@@ -364,51 +378,11 @@ export default function ProjectDetailPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="picks" className="space-y-3 mt-3">
-            {pickListsData?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No pick lists yet. Add materials and generate a pick list.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {pickListsData?.map((pick) => (
-                  <Card key={pick.id} data-testid={`card-pick-${pick.id}`}>
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <span className="text-sm font-mono font-medium">{pick.sku}</span>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-xs text-muted-foreground">Need: {pick.quantityRequested}</span>
-                            <span className="text-xs text-muted-foreground">Picked: {pick.quantityPicked}</span>
-                            <span className="text-xs text-muted-foreground">From: {pick.pickFromLocation}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <StatusBadge status={pick.status} type="pickList" />
-                          {(pick.status === "Pending" || pick.status === "In Progress") && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => { setSelectedPick(pick); setPickedQty(String(pick.quantityRequested)); setConfirmPickOpen(true); }}
-                              data-testid={`button-confirm-pick-${pick.id}`}
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <Dialog open={allocateOpen} onOpenChange={setAllocateOpen}>
@@ -458,32 +432,6 @@ export default function ProjectDetailPage() {
               data-testid="button-save-allocation"
             >
               {allocateMutation.isPending ? "Allocating..." : "Allocate"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={confirmPickOpen} onOpenChange={setConfirmPickOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Confirm Pick</DialogTitle>
-            {selectedPick && <p className="text-sm text-muted-foreground font-mono">{selectedPick.sku}</p>}
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm">Requested: <strong>{selectedPick?.quantityRequested}</strong> from <strong>{selectedPick?.pickFromLocation}</strong></p>
-            <div>
-              <Label>Quantity Actually Picked</Label>
-              <Input type="number" min="0" max={selectedPick?.quantityRequested} value={pickedQty} onChange={(e) => setPickedQty(e.target.value)} data-testid="input-picked-qty" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmPickOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => selectedPick && confirmPickMutation.mutate({ pickListId: selectedPick.id, quantityPicked: parseInt(pickedQty) })}
-              disabled={!pickedQty || confirmPickMutation.isPending}
-              data-testid="button-confirm-pick-save"
-            >
-              {confirmPickMutation.isPending ? "Confirming..." : "Confirm Pick"}
             </Button>
           </DialogFooter>
         </DialogContent>
