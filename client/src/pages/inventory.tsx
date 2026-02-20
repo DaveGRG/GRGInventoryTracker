@@ -277,12 +277,14 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        <Tabs value={hub} onValueChange={setHub}>
-          <TabsList className="w-full rounded-none justify-start px-3">
-            <TabsTrigger value="Farm" data-testid="tab-farm" className="flex-1">Farm</TabsTrigger>
-            <TabsTrigger value="MKE" data-testid="tab-mke" className="flex-1">MKE</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="max-w-2xl mx-auto">
+          <Tabs value={hub} onValueChange={setHub}>
+            <TabsList className="w-full rounded-none justify-start px-3">
+              <TabsTrigger value="Farm" data-testid="tab-farm" className="flex-1">Farm</TabsTrigger>
+              <TabsTrigger value="MKE" data-testid="tab-mke" className="flex-1">MKE</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {isLoading ? (
