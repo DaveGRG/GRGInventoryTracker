@@ -49,7 +49,6 @@ export default function InventoryPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [belowParOnly, setBelowParOnly] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [expandedNoStock, setExpandedNoStock] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<InventoryItemWithStock | null>(null);
   const [adjustDialog, setAdjustDialog] = useState(false);
   const [adjustLocation, setAdjustLocation] = useState("");
@@ -208,14 +207,7 @@ export default function InventoryPage() {
     });
   };
 
-  const toggleNoStock = (group: string) => {
-    setExpandedNoStock((prev) => {
-      const next = new Set(prev);
-      if (next.has(group)) next.delete(group);
-      else next.add(group);
-      return next;
-    });
-  };
+
 
   const clearFilters = () => {
     setSpeciesFilter(null);
@@ -332,7 +324,7 @@ export default function InventoryPage() {
                         <span className="text-sm font-semibold">{displayName}</span>
                       </div>
                       <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
-                        {groupItems.length} items
+                        {groupItems.length} items{!isOpen && groupNoStock.length > 0 ? `, ${groupNoStock.length} no stock` : ""}
                       </Badge>
                     </div>
                   </CollapsibleTrigger>
@@ -365,50 +357,31 @@ export default function InventoryPage() {
                         );
                       })}
                     </div>
-                    {groupNoStock.length > 0 && (
-                      <Collapsible open={expandedNoStock.has(group) || isSearching} onOpenChange={() => toggleNoStock(group)}>
-                        <CollapsibleTrigger className="w-full" data-testid={`no-stock-toggle-${displayName}`}>
-                          <div className="flex items-center justify-between gap-2 px-4 py-2 border-t bg-muted/20">
-                            <div className="flex items-center gap-2">
-                              {(expandedNoStock.has(group) || isSearching) ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                              <span className="text-xs font-semibold text-muted-foreground">No Stock</span>
+                    {groupNoStock.map((item) => {
+                      const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
+                      return (
+                        <div
+                          key={item.sku}
+                          className="px-4 py-3 hover-elevate cursor-pointer opacity-60"
+                          onClick={() => setSelectedItem(item)}
+                          data-testid={`item-row-${item.sku}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-mono font-semibold">{item.sku}</span>
+                                <StatusBadge status={item.status} />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
                             </div>
-                            <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
-                              {groupNoStock.length} items
-                            </Badge>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-xl font-bold tabular-nums text-muted-foreground" data-testid={`text-qty-${item.sku}`}>0</p>
+                              <ParIndicator current={0} par={parLevel} />
+                            </div>
                           </div>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="divide-y">
-                            {groupNoStock.map((item) => {
-                              const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
-                              return (
-                                <div
-                                  key={item.sku}
-                                  className="px-4 py-3 hover-elevate cursor-pointer"
-                                  onClick={() => setSelectedItem(item)}
-                                  data-testid={`item-row-${item.sku}`}
-                                >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-sm font-mono font-semibold">{item.sku}</span>
-                                        <StatusBadge status={item.status} />
-                                      </div>
-                                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
-                                    </div>
-                                    <div className="text-right flex-shrink-0">
-                                      <p className="text-xl font-bold tabular-nums text-muted-foreground" data-testid={`text-qty-${item.sku}`}>0</p>
-                                      <ParIndicator current={0} par={parLevel} />
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
+                        </div>
+                      );
+                    })}
                   </CollapsibleContent>
                 </Collapsible>
               );
