@@ -303,11 +303,32 @@ export default function InventoryPage() {
               groupedBySpecies[group].push(item);
             }
 
+            const parseDim = (val: string | null | undefined): number => {
+              if (!val) return 0;
+              const m = val.match(/[\d/.]+/);
+              if (!m) return 0;
+              if (m[0].includes("/")) {
+                const parts = m[0].split("/");
+                return parseFloat(parts[0]) / parseFloat(parts[1]);
+              }
+              return parseFloat(m[0]);
+            };
+
+            const sortByDimension = (a: InventoryItemWithStock, b: InventoryItemWithStock) => {
+              const at = parseDim(a.thickness), bt = parseDim(b.thickness);
+              if (at !== bt) return at - bt;
+              const aw = parseDim(a.width), bw = parseDim(b.width);
+              if (aw !== bw) return aw - bw;
+              const al = parseDim(a.length), bl = parseDim(b.length);
+              if (al !== bl) return al - bl;
+              return a.sku.localeCompare(b.sku);
+            };
+
             const speciesOrder = Object.keys(groupedBySpecies).sort();
             const isSearching = !!search;
 
             return speciesOrder.map((group) => {
-              const groupItems = groupedBySpecies[group];
+              const groupItems = groupedBySpecies[group].sort(sortByDimension);
               const displayName = speciesDisplayName[group] || group;
               const groupInStock = groupItems.filter((item) =>
                 item.stockLevels?.some((sl) => sl.locationId === currentLocationId && sl.quantity > 0)
