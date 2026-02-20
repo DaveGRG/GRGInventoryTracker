@@ -258,7 +258,7 @@ export default function InventoryPage() {
                 onClick={() => setSpeciesFilter(speciesFilter === sp ? null : sp!)}
                 data-testid={`filter-species-${sp}`}
               >
-                {sp}
+                {sp === "Cedar" ? "CDR" : sp === "Cedar Tone" ? "CT" : sp}
               </Badge>
             ))}
             <Badge
