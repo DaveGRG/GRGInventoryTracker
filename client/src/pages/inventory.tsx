@@ -282,7 +282,7 @@ export default function InventoryPage() {
         </div>
 
         <div className="max-w-2xl mx-auto">
-          <Tabs value={hub} onValueChange={setHub}>
+          <Tabs value={hub} onValueChange={(val) => { setHub(val); setExpandedGroups(new Set()); }}>
             <TabsList className="w-full rounded-none justify-start px-3">
               <TabsTrigger value="Farm" data-testid="tab-farm" className="flex-1">Farm</TabsTrigger>
               <TabsTrigger value="MKE" data-testid="tab-mke" className="flex-1">MKE</TabsTrigger>
