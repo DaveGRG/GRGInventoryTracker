@@ -36,13 +36,20 @@ const hubLocationMap: Record<string, string> = {
   MKE: "MKE",
 };
 
+const speciesDisplayName: Record<string, string> = {
+  Cedar: "CDR",
+  "Cedar Tone": "CT",
+  "Black Locust": "BL",
+};
+
 export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [hub, setHub] = useState("Farm");
   const [speciesFilter, setSpeciesFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [belowParOnly, setBelowParOnly] = useState(false);
-  const [showNoStock, setShowNoStock] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedNoStock, setExpandedNoStock] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<InventoryItemWithStock | null>(null);
   const [adjustDialog, setAdjustDialog] = useState(false);
   const [adjustLocation, setAdjustLocation] = useState("");
@@ -85,7 +92,6 @@ export default function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       toast({ title: "Item created", description: "New inventory item added successfully." });
-      setShowNoStock(true);
       resetNewItemForm();
     },
     onError: (error: Error) => {
@@ -177,18 +183,6 @@ export default function InventoryPage() {
     return true;
   });
 
-  const getInStockItems = () => {
-    return filteredItems?.filter((item) =>
-      item.stockLevels?.some((sl) => sl.locationId === currentLocationId && sl.quantity > 0)
-    ) || [];
-  };
-
-  const getNoStockItems = () => {
-    return filteredItems?.filter((item) => {
-      const qty = getQtyAtLocation(item, currentLocationId);
-      return qty === 0;
-    }) || [];
-  };
 
   function getQtyAtLocation(item: InventoryItemWithStock, locId: string) {
     return item.stockLevels?.find((sl) => sl.locationId === locId)?.quantity || 0;
@@ -202,6 +196,24 @@ export default function InventoryPage() {
       newQuantity: parseInt(adjustQuantity),
       reason: adjustReason,
       notes: adjustNotes || undefined,
+    });
+  };
+
+  const toggleGroup = (group: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(group)) next.delete(group);
+      else next.add(group);
+      return next;
+    });
+  };
+
+  const toggleNoStock = (group: string) => {
+    setExpandedNoStock((prev) => {
+      const next = new Set(prev);
+      if (next.has(group)) next.delete(group);
+      else next.add(group);
+      return next;
     });
   };
 
@@ -291,83 +303,116 @@ export default function InventoryPage() {
         <InventoryListSkeleton />
       ) : (
         <div className="max-w-2xl mx-auto">
-          <div className="divide-y">
-            {getInStockItems().map((item) => {
-              const qty = getQtyAtLocation(item, currentLocationId);
-              const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
-              return (
-                <div
-                  key={item.sku}
-                  className="px-4 py-3 hover-elevate cursor-pointer"
-                  onClick={() => setSelectedItem(item)}
-                  data-testid={`item-row-${item.sku}`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-mono font-semibold">{item.sku}</span>
-                        <StatusBadge status={item.status} />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-xl font-bold tabular-nums" data-testid={`text-qty-${item.sku}`}>{qty}</p>
-                      <ParIndicator current={qty} par={parLevel} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
           {(() => {
-            const noStockItems = getNoStockItems();
-            if (noStockItems.length === 0) return null;
-            const isOpen = showNoStock || !!search;
-            return (
-              <Collapsible open={isOpen} onOpenChange={() => setShowNoStock(!showNoStock)}>
-                <CollapsibleTrigger className="w-full" data-testid="zone-toggle-no-stock">
-                  <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-muted/30">
-                    <div className="flex items-center gap-2">
-                      {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                      <span className="text-sm font-semibold text-muted-foreground">No Stock</span>
+            const groupedBySpecies: Record<string, InventoryItemWithStock[]> = {};
+            for (const item of (filteredItems || [])) {
+              const group = item.species || "Other";
+              if (!groupedBySpecies[group]) groupedBySpecies[group] = [];
+              groupedBySpecies[group].push(item);
+            }
+
+            const speciesOrder = Object.keys(groupedBySpecies).sort();
+            const isSearching = !!search;
+
+            return speciesOrder.map((group) => {
+              const groupItems = groupedBySpecies[group];
+              const displayName = speciesDisplayName[group] || group;
+              const groupInStock = groupItems.filter((item) =>
+                item.stockLevels?.some((sl) => sl.locationId === currentLocationId && sl.quantity > 0)
+              );
+              const groupNoStock = groupItems.filter((item) => getQtyAtLocation(item, currentLocationId) === 0);
+              const isOpen = expandedGroups.has(group) || isSearching;
+
+              return (
+                <Collapsible key={group} open={isOpen} onOpenChange={() => toggleGroup(group)}>
+                  <CollapsibleTrigger className="w-full" data-testid={`group-toggle-${displayName}`}>
+                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                        <span className="text-sm font-semibold">{displayName}</span>
+                      </div>
+                      <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
+                        {groupItems.length} items
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
-                      {noStockItems.length} items
-                    </Badge>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="divide-y">
-                    {noStockItems.map((item) => {
-                      const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
-                      return (
-                        <div
-                          key={item.sku}
-                          className="px-4 py-3 hover-elevate cursor-pointer"
-                          onClick={() => setSelectedItem(item)}
-                          data-testid={`item-row-${item.sku}`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-mono font-semibold">{item.sku}</span>
-                                <StatusBadge status={item.status} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="divide-y">
+                      {groupInStock.map((item) => {
+                        const qty = getQtyAtLocation(item, currentLocationId);
+                        const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
+                        return (
+                          <div
+                            key={item.sku}
+                            className="px-4 py-3 hover-elevate cursor-pointer"
+                            onClick={() => setSelectedItem(item)}
+                            data-testid={`item-row-${item.sku}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-mono font-semibold">{item.sku}</span>
+                                  <StatusBadge status={item.status} />
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <p className="text-xl font-bold tabular-nums text-muted-foreground" data-testid={`text-qty-${item.sku}`}>0</p>
-                              <ParIndicator current={0} par={parLevel} />
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-xl font-bold tabular-nums" data-testid={`text-qty-${item.sku}`}>{qty}</p>
+                                <ParIndicator current={qty} par={parLevel} />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
+                        );
+                      })}
+                    </div>
+                    {groupNoStock.length > 0 && (
+                      <Collapsible open={expandedNoStock.has(group) || isSearching} onOpenChange={() => toggleNoStock(group)}>
+                        <CollapsibleTrigger className="w-full" data-testid={`no-stock-toggle-${displayName}`}>
+                          <div className="flex items-center justify-between gap-2 px-4 py-2 border-t bg-muted/20">
+                            <div className="flex items-center gap-2">
+                              {(expandedNoStock.has(group) || isSearching) ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                              <span className="text-xs font-semibold text-muted-foreground">No Stock</span>
+                            </div>
+                            <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
+                              {groupNoStock.length} items
+                            </Badge>
+                          </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="divide-y">
+                            {groupNoStock.map((item) => {
+                              const parLevel = hub === "Farm" ? item.farmParLevel : item.mkeParLevel;
+                              return (
+                                <div
+                                  key={item.sku}
+                                  className="px-4 py-3 hover-elevate cursor-pointer"
+                                  onClick={() => setSelectedItem(item)}
+                                  data-testid={`item-row-${item.sku}`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-sm font-mono font-semibold">{item.sku}</span>
+                                        <StatusBadge status={item.status} />
+                                      </div>
+                                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                      <p className="text-xl font-bold tabular-nums text-muted-foreground" data-testid={`text-qty-${item.sku}`}>0</p>
+                                      <ParIndicator current={0} par={parLevel} />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            });
           })()}
         </div>
       )}
