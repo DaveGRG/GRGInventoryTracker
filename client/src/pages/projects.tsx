@@ -81,7 +81,7 @@ export default function ProjectsPage() {
     <div className="min-h-screen bg-background pb-20">
       <AppHeader title="Products" />
 
-      <div className="sticky top-14 z-30 bg-background border-b">
+      <div className="sticky top-16 z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">

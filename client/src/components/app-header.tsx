@@ -21,7 +21,7 @@ export function AppHeader({ title, showBack, backTo = "/more" }: { title: string
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="flex items-center justify-between gap-2 px-4 h-14 max-w-2xl mx-auto border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="flex items-center justify-between gap-2 px-4 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex items-center gap-2 min-w-0">
           {showBack && (
             <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8" onClick={() => navigate(backTo)} data-testid="button-back">
@@ -33,7 +33,7 @@ export function AppHeader({ title, showBack, backTo = "/more" }: { title: string
               <span className="text-primary-foreground font-bold text-xs">GRG</span>
             </div>
           )}
-          <h1 className="text-base font-semibold truncate" style={{ color: '#5c4a1e' }} data-testid="text-page-title">{title}</h1>
+          <h1 className="text-xl font-bold truncate" style={{ color: '#5c4a1e' }} data-testid="text-page-title">{title}</h1>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

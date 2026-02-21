@@ -153,7 +153,7 @@ export default function InventoryPage() {
     <div className="min-h-screen bg-background pb-20">
       <AppHeader title="Inventory" />
 
-      <div className="sticky top-14 z-30 bg-background border-b">
+      <div className="sticky top-16 z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
