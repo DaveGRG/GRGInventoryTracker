@@ -35,7 +35,7 @@ export default function ClientsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader title="Clients" />
+      <AppHeader title="Projects" />
 
       <div className="sticky top-14 z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">
@@ -43,7 +43,7 @@ export default function ClientsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search clients or products..."
+              placeholder="Search projects..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -52,7 +52,7 @@ export default function ClientsPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums" data-testid="text-client-count">
-              {filtered.length} client{filtered.length !== 1 ? "s" : ""}
+              {filtered.length} project{filtered.length !== 1 ? "s" : ""}
             </Badge>
             {clients && (
               <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums" data-testid="text-total-products">
@@ -72,8 +72,8 @@ export default function ClientsPage() {
           {filtered.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground" data-testid="text-no-clients">
               <Users className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
-              <p className="text-sm">{search ? "No clients match your search" : "No clients yet"}</p>
-              <p className="text-xs mt-1">Clients appear here when you create products with a client name.</p>
+              <p className="text-sm">{search ? "No projects match your search" : "No projects yet"}</p>
+              <p className="text-xs mt-1">Projects appear here when you create products with a client name.</p>
             </div>
           ) : (
             filtered.map((client) => {
