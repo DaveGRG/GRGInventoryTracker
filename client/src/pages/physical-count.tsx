@@ -109,6 +109,9 @@ export default function PhysicalCountPage() {
   };
 
   const sortByDimension = (a: { thickness?: string | null; width?: string | null; length?: string | null; sku: string }, b: { thickness?: string | null; width?: string | null; length?: string | null; sku: string }) => {
+    const aBS = a.sku.includes(" BS ") ? 1 : 0;
+    const bBS = b.sku.includes(" BS ") ? 1 : 0;
+    if (aBS !== bBS) return aBS - bBS;
     const at = parseDim(a.thickness), bt = parseDim(b.thickness);
     if (at !== bt) return at - bt;
     const aw = parseDim(a.width), bw = parseDim(b.width);

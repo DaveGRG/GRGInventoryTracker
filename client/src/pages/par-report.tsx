@@ -40,8 +40,15 @@ export default function ParReportPage() {
     queryKey: ["/api/vendors"],
   });
 
-  const farmAlerts = alerts?.filter((a) => a.hub === "Farm") || [];
-  const mkeAlerts = alerts?.filter((a) => a.hub === "MKE") || [];
+  const sortAlerts = (list: ParLevelAlert[]) =>
+    [...list].sort((a, b) => {
+      const aBS = a.sku.includes(" BS ") ? 1 : 0;
+      const bBS = b.sku.includes(" BS ") ? 1 : 0;
+      if (aBS !== bBS) return aBS - bBS;
+      return a.sku.localeCompare(b.sku);
+    });
+  const farmAlerts = sortAlerts(alerts?.filter((a) => a.hub === "Farm") || []);
+  const mkeAlerts = sortAlerts(alerts?.filter((a) => a.hub === "MKE") || []);
 
   const toggleItem = (item: ParLevelAlert) => {
     const key = `${item.sku}-${item.hub}`;

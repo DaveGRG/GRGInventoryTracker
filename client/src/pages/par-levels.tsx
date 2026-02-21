@@ -38,13 +38,20 @@ export default function ParLevelsPage() {
   });
 
   const filteredItems = useMemo(() => {
-    if (!items) return [];
-    if (!search) return items;
-    const q = search.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.sku.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
-    );
+    let result = items ? [...items] : [];
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (item) =>
+          item.sku.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
+      );
+    }
+    return result.sort((a, b) => {
+      const aBS = a.sku.includes(" BS ") ? 1 : 0;
+      const bBS = b.sku.includes(" BS ") ? 1 : 0;
+      if (aBS !== bBS) return aBS - bBS;
+      return a.sku.localeCompare(b.sku);
+    });
   }, [items, search]);
 
   const getDisplayValue = (sku: string, hub: "farm" | "mke"): string => {

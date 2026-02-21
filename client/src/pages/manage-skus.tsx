@@ -177,6 +177,9 @@ export default function ManageSkusPage() {
     const q = search.toLowerCase();
     return item.sku.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
   }).sort((a, b) => {
+    const aBS = a.sku.includes(" BS ") ? 1 : 0;
+    const bBS = b.sku.includes(" BS ") ? 1 : 0;
+    if (aBS !== bBS) return aBS - bBS;
     const [aThick, aWidth, aLen] = parseDimensions(a.sku);
     const [bThick, bWidth, bLen] = parseDimensions(b.sku);
     if (aThick !== bThick) return aThick - bThick;

@@ -234,6 +234,9 @@ export default function InventoryPage() {
             };
 
             const sortByDimension = (a: InventoryItemWithStock, b: InventoryItemWithStock) => {
+              const aBS = a.sku.includes(" BS ") ? 1 : 0;
+              const bBS = b.sku.includes(" BS ") ? 1 : 0;
+              if (aBS !== bBS) return aBS - bBS;
               const at = parseDim(a.thickness), bt = parseDim(b.thickness);
               if (at !== bt) return at - bt;
               const aw = parseDim(a.width), bw = parseDim(b.width);
