@@ -18,8 +18,9 @@ export default function ParReportPage() {
   const mkeAlerts = alerts?.filter((a) => a.hub === "MKE") || [];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="Par Level Report" showBack />
+      <BottomNav />
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
         <div className="flex items-center justify-between gap-2">
@@ -105,7 +106,6 @@ export default function ParReportPage() {
         )}
       </div>
 
-      <BottomNav />
     </div>
   );
 }

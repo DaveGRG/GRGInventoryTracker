@@ -60,8 +60,9 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="Users" showBack />
+      <BottomNav />
 
       <div className="p-4 space-y-3 max-w-2xl mx-auto">
         <div className="flex items-center justify-end gap-2">
@@ -166,7 +167,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      <BottomNav />
     </div>
   );
 }

@@ -152,8 +152,9 @@ export default function PhysicalCountPage() {
   const isLoading = itemsLoading || locationsLoading;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="Physical Count" showBack />
+      <BottomNav />
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
         <div className="space-y-2">
@@ -311,7 +312,6 @@ export default function PhysicalCountPage() {
         )}
       </div>
 
-      <BottomNav />
     </div>
   );
 }

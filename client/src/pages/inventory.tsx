@@ -150,10 +150,11 @@ export default function InventoryPage() {
 
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="Inventory" />
+      <BottomNav />
 
-      <div className="sticky top-20 z-30 bg-background border-b">
+      <div className="sticky top-[7.5rem] z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -499,7 +500,6 @@ export default function InventoryPage() {
         </DialogContent>
       </Dialog>
 
-      <BottomNav />
     </div>
   );
 }

@@ -78,10 +78,11 @@ export default function ProjectsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="Products" />
+      <BottomNav />
 
-      <div className="sticky top-20 z-30 bg-background border-b">
+      <div className="sticky top-[7.5rem] z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -243,7 +244,6 @@ export default function ProjectsPage() {
         </DialogContent>
       </Dialog>
 
-      <BottomNav />
     </div>
   );
 }

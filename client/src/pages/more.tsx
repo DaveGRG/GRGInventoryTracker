@@ -15,8 +15,9 @@ const menuItems = [
 
 export default function MorePage() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="More" />
+      <BottomNav />
       <div className="p-4 space-y-2 max-w-2xl mx-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -37,7 +38,6 @@ export default function MorePage() {
           );
         })}
       </div>
-      <BottomNav />
     </div>
   );
 }

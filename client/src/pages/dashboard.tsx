@@ -16,8 +16,9 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="Dashboard" />
+      <BottomNav />
       {isLoading ? (
         <DashboardSkeleton />
       ) : (
@@ -123,7 +124,6 @@ export default function DashboardPage() {
           )}
         </div>
       )}
-      <BottomNav />
     </div>
   );
 }

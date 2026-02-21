@@ -92,8 +92,9 @@ export default function ManageSkusPage() {
   }) || [];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title="Manage SKUs" showBack />
+      <BottomNav />
 
       <div className="p-4 space-y-3 max-w-2xl mx-auto">
         <div className="flex items-center gap-2">
@@ -277,7 +278,6 @@ export default function ManageSkusPage() {
         </DialogContent>
       </Dialog>
 
-      <BottomNav />
     </div>
   );
 }

@@ -230,36 +230,37 @@ export default function ProjectDetailPage() {
 
   if (projectLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background">
         <AppHeader title="Product" />
+        <BottomNav />
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-40 w-full" />
         </div>
-        <BottomNav />
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background">
         <AppHeader title="Product Not Found" />
+        <BottomNav />
         <div className="p-4 text-center py-12">
           <p className="text-muted-foreground">Product not found.</p>
           <Button variant="outline" asChild className="mt-4">
             <Link href="/projects">Back to Products</Link>
           </Button>
         </div>
-        <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       <AppHeader title={project.projectName} />
+      <BottomNav />
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
         <Button variant="ghost" size="sm" asChild className="mb-2" data-testid="button-back-projects">
@@ -573,7 +574,6 @@ export default function ProjectDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <BottomNav />
     </div>
   );
 }
