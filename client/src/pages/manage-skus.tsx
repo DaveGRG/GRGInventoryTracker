@@ -256,8 +256,8 @@ export default function ManageSkusPage() {
                           {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                           <span className="text-sm font-semibold">{displayName}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>
+                        {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>}
+                        {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>}
                       </div>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
