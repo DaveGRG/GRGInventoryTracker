@@ -96,7 +96,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <div className="max-h-[400px] overflow-y-auto space-y-2">
+                <div className="max-h-[400px] overflow-y-auto scroll-smooth space-y-2">
                   {data.belowParItems.map((item) => (
                     <div
                       key={`${item.sku}-${item.hub}`}
