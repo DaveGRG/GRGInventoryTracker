@@ -63,7 +63,7 @@ export default function NewItemPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader title="New Item" />
+      <AppHeader title="New Item" showBack />
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
         <div>
           <Label>SKU *</Label>

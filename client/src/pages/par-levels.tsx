@@ -124,7 +124,7 @@ export default function ParLevelsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader title="Par Levels" />
+      <AppHeader title="Par Levels" showBack />
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
         <div className="relative">

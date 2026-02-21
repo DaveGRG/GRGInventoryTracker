@@ -23,9 +23,16 @@ export function AppHeader({ title, showBack }: { title: string; showBack?: boole
     <header className="sticky top-0 z-40">
       <div className="flex items-center justify-between gap-2 px-4 h-14 max-w-2xl mx-auto border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-bold text-xs">GRG</span>
-          </div>
+          {showBack && (
+            <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8" onClick={() => navigate("/more")} data-testid="button-back">
+              <ArrowLeft className="h-5 w-5" style={{ color: '#5c4a1e' }} />
+            </Button>
+          )}
+          {!showBack && (
+            <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
+              <span className="text-primary-foreground font-bold text-xs">GRG</span>
+            </div>
+          )}
           <h1 className="text-base font-semibold truncate" style={{ color: '#5c4a1e' }} data-testid="text-page-title">{title}</h1>
         </div>
         <DropdownMenu>

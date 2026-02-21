@@ -40,7 +40,7 @@ export default function AuditLogPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader title="Audit Log" />
+      <AppHeader title="Audit Log" showBack />
 
       <div className="sticky top-14 z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">

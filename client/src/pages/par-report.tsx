@@ -19,7 +19,7 @@ export default function ParReportPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader title="Par Level Report" />
+      <AppHeader title="Par Level Report" showBack />
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
         <div className="flex items-center justify-between gap-2">
