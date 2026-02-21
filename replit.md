@@ -68,7 +68,7 @@ A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory 
   - Replit Auth integration for authentication
 
 ## User Preferences
-- Forest green theme (#2D5F2D / HSL 120 35% 28%) for GRG Playscapes brand
+- Bright GRG green theme (HSL 93 72% 38%) matching grgplayscapes.com branding
 - Mobile-first design with bottom navigation (not hamburger menu)
 - Inter font for body text, JetBrains Mono for SKU codes
 - Central Time Zone (America/Chicago) for date displays
