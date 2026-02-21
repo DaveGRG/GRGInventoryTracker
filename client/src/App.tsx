@@ -17,7 +17,7 @@ import ParReportPage from "@/pages/par-report";
 import PhysicalCountPage from "@/pages/physical-count";
 import ParLevelsPage from "@/pages/par-levels";
 import ClientsPage from "@/pages/clients";
-import NewItemPage from "@/pages/new-item";
+import ManageSkusPage from "@/pages/manage-skus";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRoutes() {
@@ -35,7 +35,7 @@ function AuthenticatedRoutes() {
       <Route path="/more/par-report" component={ParReportPage} />
       <Route path="/physical-count" component={PhysicalCountPage} />
       <Route path="/more/par-levels" component={ParLevelsPage} />
-      <Route path="/more/new-item" component={NewItemPage} />
+      <Route path="/more/manage-skus" component={ManageSkusPage} />
       <Route path="/clients" component={ClientsPage} />
       <Route component={NotFound} />
     </Switch>

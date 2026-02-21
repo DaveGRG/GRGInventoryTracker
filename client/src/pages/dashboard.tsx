@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { Package, AlertTriangle, Truck, ClipboardList, ArrowRight, Clock, Users } from "lucide-react";
+import { AlertTriangle, Truck, ClipboardList, ArrowRight, Clock, Users } from "lucide-react";
 import { Link } from "wouter";
 import type { DashboardData } from "@/lib/types";
 
@@ -23,15 +23,6 @@ export default function DashboardPage() {
       ) : (
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
           <div className="grid grid-cols-2 gap-3">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Total SKUs</span>
-                </div>
-                <p className="text-2xl font-bold tabular-nums" data-testid="text-total-skus">{data?.totalSkus || 0}</p>
-              </CardContent>
-            </Card>
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-1">
