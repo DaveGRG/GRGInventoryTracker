@@ -276,9 +276,10 @@ export default function PhysicalCountPage() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="mt-1 border rounded-lg overflow-hidden">
-                          <div className="flex items-center justify-end gap-6 px-3 py-2 bg-muted/70 border-b sticky top-0 z-10">
-                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold w-20 text-center leading-tight">System<br/>Qty</span>
-                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold w-20 text-center leading-tight">Count</span>
+                          <div className="grid px-3 py-2 bg-muted/70 border-b sticky top-0 z-10" style={{ gridTemplateColumns: '1fr 5rem 5rem' }}>
+                            <span></span>
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold text-center leading-tight">System<br/>Qty</span>
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold text-center leading-tight">Count</span>
                           </div>
                           <div className="max-h-[60vh] overflow-y-auto">
                             {groupItems.map((item) => {
@@ -287,33 +288,30 @@ export default function PhysicalCountPage() {
                               return (
                                 <div
                                   key={item.sku}
-                                  className={`flex items-center justify-between gap-3 px-3 py-2.5 border-b last:border-b-0 ${isDiff ? "bg-primary/5" : ""}`}
+                                  className={`grid items-center px-3 py-2.5 border-b last:border-b-0 ${isDiff ? "bg-primary/5" : ""}`}
+                                  style={{ gridTemplateColumns: '1fr 5rem 5rem' }}
                                   data-testid={`physical-count-item-${item.sku}`}
                                 >
-                                  <div className="min-w-0 flex-1">
-                                    <span
-                                      className="text-sm font-mono font-semibold"
-                                      data-testid={`text-sku-${item.sku}`}
-                                    >
-                                      {item.sku}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-6 flex-shrink-0">
-                                    <p
-                                      className="text-sm font-semibold tabular-nums w-20 text-center"
-                                      data-testid={`text-system-qty-${item.sku}`}
-                                    >
-                                      {systemQty}
-                                    </p>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      value={getInputValue(item.sku, systemQty)}
-                                      onChange={(e) => handleQuantityChange(item.sku, e.target.value)}
-                                      className="w-20 text-center tabular-nums"
-                                      data-testid={`input-counted-qty-${item.sku}`}
-                                    />
-                                  </div>
+                                  <span
+                                    className="text-sm font-mono font-semibold min-w-0 truncate"
+                                    data-testid={`text-sku-${item.sku}`}
+                                  >
+                                    {item.sku}
+                                  </span>
+                                  <p
+                                    className="text-sm font-semibold tabular-nums text-center"
+                                    data-testid={`text-system-qty-${item.sku}`}
+                                  >
+                                    {systemQty}
+                                  </p>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={getInputValue(item.sku, systemQty)}
+                                    onChange={(e) => handleQuantityChange(item.sku, e.target.value)}
+                                    className="w-full text-center tabular-nums"
+                                    data-testid={`input-counted-qty-${item.sku}`}
+                                  />
                                 </div>
                               );
                             })}
