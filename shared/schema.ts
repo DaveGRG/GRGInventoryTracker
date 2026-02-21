@@ -19,7 +19,7 @@ export const categoryEnum = ["Lumber", "Hardware", "Ready-Made"] as const;
 export const itemStatusEnum = ["Active", "Discontinuing", "Discontinued"] as const;
 export const hubEnum = ["Farm", "MKE", "Transit"] as const;
 export const projectStatusEnum = ["Planning", "Active", "Complete", "On Hold"] as const;
-export const allocationStatusEnum = ["Planning", "Pulled", "Cancelled"] as const;
+export const allocationStatusEnum = ["Pending", "Pulled", "Cancelled"] as const;
 export const transferStatusEnum = ["Requested", "In Transit", "Received", "Cancelled"] as const;
 export const pickListStatusEnum = ["Pending", "In Progress", "Completed", "Cancelled"] as const;
 export const actionTypeEnum = [
@@ -86,7 +86,7 @@ export const allocations = pgTable("allocations", {
   sku: text("sku").notNull().references(() => inventoryItems.sku),
   quantity: integer("quantity").notNull(),
   sourceLocation: text("source_location").references(() => locations.locationId),
-  status: text("status").notNull().default("Planning"),
+  status: text("status").notNull().default("Pending"),
   allocatedBy: text("allocated_by").notNull(),
   allocatedDate: date("allocated_date").notNull(),
   notes: text("notes"),

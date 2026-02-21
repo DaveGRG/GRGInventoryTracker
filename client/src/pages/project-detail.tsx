@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMemo } from "react";
-import { ArrowLeft, Plus, User, MapPin, Calendar, Trash2, PackageCheck, AlertTriangle, Undo2 } from "lucide-react";
+import { ArrowLeft, Plus, User, MapPin, Calendar, Trash2, PackageCheck, AlertTriangle, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -148,7 +148,7 @@ export default function ProjectDetailPage() {
   };
 
   const pullableAllocations = allocationsData?.filter((a) =>
-    a.status === "Planning" && a.sourceLocation && !hasInsufficientStock(a)
+    a.status === "Pending" && a.sourceLocation && !hasInsufficientStock(a)
   ) || [];
 
   const toggleAllocation = (id: number) => {
@@ -292,7 +292,7 @@ export default function ProjectDetailPage() {
           ) : (
             <div className="space-y-2">
               {allocationsData?.map((alloc) => {
-                const isPlanning = alloc.status === "Planning" && !!alloc.sourceLocation;
+                const isPlanning = alloc.status === "Pending" && !!alloc.sourceLocation;
                 const insufficientStock = isPlanning && hasInsufficientStock(alloc);
                 const isPullable = isPlanning && !insufficientStock;
                 const isChecked = checkedAllocations.has(alloc.id);
@@ -332,15 +332,14 @@ export default function ProjectDetailPage() {
                           {alloc.status === "Pulled" && <StatusBadge status={alloc.status} type="allocation" />}
                           {alloc.status === "Pulled" && (
                             <Button
-                              size="sm"
+                              size="icon"
                               variant="ghost"
-                              className="h-6 px-1.5 text-xs"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
                               onClick={() => unpullBatchMutation.mutate([alloc.id])}
                               disabled={unpullBatchMutation.isPending}
                               data-testid={`button-unpull-${alloc.id}`}
                             >
-                              <Undo2 className="h-3 w-3 mr-0.5" />
-                              Unpull
+                              <X className="h-5 w-5" />
                             </Button>
                           )}
                         </div>
