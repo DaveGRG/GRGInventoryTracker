@@ -172,7 +172,7 @@
 
   body {
     @apply font-sans antialiased text-foreground;
-    background-color: hsla(93, 72%, 38%, 0.5);
+    background-color: hsl(93, 72%, 38%);
   }
 
   #root > div {
