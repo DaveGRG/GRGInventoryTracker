@@ -276,12 +276,9 @@ export default function PhysicalCountPage() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="mt-1 border rounded-lg overflow-hidden">
-                          <div className="flex items-center justify-between gap-3 px-3 py-2 bg-muted/70 border-b sticky top-0 z-10">
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">SKU</span>
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium w-16 text-center">System Qty</span>
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium w-20 text-center">Count</span>
-                            </div>
+                          <div className="flex items-center justify-end gap-3 px-3 py-2 bg-muted/70 border-b sticky top-0 z-10">
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center leading-tight">System<br/>Qty</span>
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold w-20 text-center leading-tight">Count</span>
                           </div>
                           <div className="max-h-[60vh] overflow-y-auto">
                             {groupItems.map((item) => {
