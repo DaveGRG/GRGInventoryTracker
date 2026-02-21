@@ -22,36 +22,29 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                  <span className="text-xs text-muted-foreground font-medium">Below Par</span>
-                </div>
-                <p className="text-2xl font-bold tabular-nums text-red-600 dark:text-red-400" data-testid="text-below-par-count">
+              <CardContent className="px-3 py-2 text-center">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-500 mx-auto mb-0.5" />
+                <p className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400" data-testid="text-below-par-count">
                   {data?.belowParItems?.length || 0}
                 </p>
+                <span className="text-[10px] text-muted-foreground font-medium">Below Par</span>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Truck className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Active Transfers</span>
-                </div>
-                <p className="text-2xl font-bold tabular-nums" data-testid="text-active-transfers">{data?.activeTransfers || 0}</p>
+              <CardContent className="px-3 py-2 text-center">
+                <Truck className="h-3.5 w-3.5 text-muted-foreground mx-auto mb-0.5" />
+                <p className="text-lg font-bold tabular-nums" data-testid="text-active-transfers">{data?.activeTransfers || 0}</p>
+                <span className="text-[10px] text-muted-foreground font-medium">Transfers</span>
               </CardContent>
             </Card>
             <Link href="/clients">
-              <Card className="hover-elevate cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground font-medium">Active Projects</span>
-                  </div>
-                  <p className="text-2xl font-bold tabular-nums" data-testid="text-active-clients">{data?.activeClients || 0}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{data?.totalClients || 0} total</p>
+              <Card className="hover-elevate cursor-pointer h-full">
+                <CardContent className="px-3 py-2 text-center">
+                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground mx-auto mb-0.5" />
+                  <p className="text-lg font-bold tabular-nums" data-testid="text-active-clients">{data?.activeClients || 0}</p>
+                  <span className="text-[10px] text-muted-foreground font-medium">Projects</span>
                 </CardContent>
               </Card>
             </Link>
