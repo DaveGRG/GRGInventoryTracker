@@ -7,23 +7,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, Building2 } from "lucide-react";
+import { Plus, Trash2, Building2, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Vendor } from "@shared/schema";
 
 export default function VendorsPage() {
-  const [addOpen, setAddOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newCompany, setNewCompany] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPhone, setNewPhone] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formCompany, setFormCompany] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPhone, setFormPhone] = useState("");
   const { toast } = useToast();
 
   const { data: vendorList, isLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
   });
+
+  const openAdd = () => {
+    setEditingVendor(null);
+    setFormName("");
+    setFormCompany("");
+    setFormEmail("");
+    setFormPhone("");
+    setDialogOpen(true);
+  };
+
+  const openEdit = (v: Vendor) => {
+    setEditingVendor(v);
+    setFormName(v.name);
+    setFormCompany(v.company || "");
+    setFormEmail(v.email);
+    setFormPhone(v.phone || "");
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setEditingVendor(null);
+  };
 
   const addMutation = useMutation({
     mutationFn: async (data: { name: string; company: string; email: string; phone: string; active: boolean }) => {
@@ -33,11 +57,22 @@ export default function VendorsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
       toast({ title: "Vendor added" });
-      setAddOpen(false);
-      setNewName("");
-      setNewCompany("");
-      setNewEmail("");
-      setNewPhone("");
+      closeDialog();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { name: string; company: string; email: string; phone: string } }) => {
+      const res = await apiRequest("PATCH", `/api/vendors/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      toast({ title: "Vendor updated" });
+      closeDialog();
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -57,6 +92,16 @@ export default function VendorsPage() {
     },
   });
 
+  const handleSave = () => {
+    if (editingVendor) {
+      updateMutation.mutate({ id: editingVendor.id, data: { name: formName, company: formCompany, email: formEmail, phone: formPhone } });
+    } else {
+      addMutation.mutate({ name: formName, company: formCompany, email: formEmail, phone: formPhone, active: true });
+    }
+  };
+
+  const isSaving = addMutation.isPending || updateMutation.isPending;
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader title="Vendor Contacts" />
@@ -67,7 +112,7 @@ export default function VendorsPage() {
             <h2 className="text-sm font-semibold">Vendors</h2>
             <p className="text-xs text-muted-foreground">Manage vendor contacts for purchase orders</p>
           </div>
-          <Button size="sm" onClick={() => setAddOpen(true)} data-testid="button-add-vendor">
+          <Button size="sm" onClick={openAdd} data-testid="button-add-vendor">
             <Plus className="h-4 w-4 mr-1.5" />
             Add
           </Button>
@@ -90,14 +135,26 @@ export default function VendorsPage() {
                     <p className="text-sm font-medium truncate">{v.name}</p>
                     {v.company && <p className="text-xs text-muted-foreground truncate">{v.company}</p>}
                     <p className="text-xs text-muted-foreground truncate">{v.email}</p>
+                    {v.phone && <p className="text-xs text-muted-foreground truncate">{v.phone}</p>}
                   </div>
-                  <button
-                    onClick={() => deleteMutation.mutate(v.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                    data-testid={`delete-vendor-${v.id}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(v)}
+                      data-testid={`edit-vendor-${v.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate(v.id)}
+                      data-testid={`delete-vendor-${v.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -113,17 +170,17 @@ export default function VendorsPage() {
         )}
       </div>
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Add Vendor</DialogTitle>
+            <DialogTitle>{editingVendor ? "Edit Vendor" : "Add Vendor"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Contact Name</Label>
               <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
                 placeholder="e.g. John Smith"
                 data-testid="input-vendor-name"
               />
@@ -131,8 +188,8 @@ export default function VendorsPage() {
             <div>
               <Label>Company</Label>
               <Input
-                value={newCompany}
-                onChange={(e) => setNewCompany(e.target.value)}
+                value={formCompany}
+                onChange={(e) => setFormCompany(e.target.value)}
                 placeholder="e.g. Lumber Co."
                 data-testid="input-vendor-company"
               />
@@ -141,8 +198,8 @@ export default function VendorsPage() {
               <Label>Email</Label>
               <Input
                 type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
+                value={formEmail}
+                onChange={(e) => setFormEmail(e.target.value)}
                 placeholder="vendor@example.com"
                 data-testid="input-vendor-email"
               />
@@ -151,21 +208,21 @@ export default function VendorsPage() {
               <Label>Phone (optional)</Label>
               <Input
                 type="tel"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
+                value={formPhone}
+                onChange={(e) => setFormPhone(e.target.value)}
                 placeholder="(555) 123-4567"
                 data-testid="input-vendor-phone"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={closeDialog}>Cancel</Button>
             <Button
-              onClick={() => addMutation.mutate({ name: newName, company: newCompany, email: newEmail, phone: newPhone, active: true })}
-              disabled={!newName || !newEmail || addMutation.isPending}
+              onClick={handleSave}
+              disabled={!formName || !formEmail || isSaving}
               data-testid="button-save-vendor"
             >
-              {addMutation.isPending ? "Adding..." : "Add Vendor"}
+              {isSaving ? "Saving..." : editingVendor ? "Save Changes" : "Add Vendor"}
             </Button>
           </DialogFooter>
         </DialogContent>
