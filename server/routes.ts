@@ -4,10 +4,10 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertInventoryItemSchema, insertNotificationRecipientSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists } from "@shared/schema";
+import { insertInventoryItemSchema, insertNotificationRecipientSchema, insertVendorSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists, purchaseOrders, purchaseOrderItems } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { sendTransferNotification } from "./email";
+import { sendTransferNotification, sendPurchaseOrderEmail } from "./email";
 
 const stockAdjustSchema = z.object({
   sku: z.string().min(1),
@@ -1144,6 +1144,105 @@ export async function registerRoutes(
     const id = parseInt(req.params.id);
     await storage.deleteNotificationRecipient(id);
     res.json({ success: true });
+  });
+
+  app.get("/api/vendors", isAuthenticated, async (_req, res) => {
+    const vendorList = await storage.getVendors();
+    res.json(vendorList);
+  });
+
+  app.post("/api/vendors", isAuthenticated, async (req: any, res) => {
+    try {
+      const parsed = insertVendorSchema.parse(req.body);
+      const vendor = await storage.createVendor(parsed);
+      res.status(201).json(vendor);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: error.errors.map((e: any) => e.message).join(", ") });
+      }
+      throw error;
+    }
+  });
+
+  app.patch("/api/vendors/:id", isAuthenticated, async (req: any, res) => {
+    const id = parseInt(req.params.id);
+    const updated = await storage.updateVendor(id, req.body);
+    if (!updated) return res.status(404).json({ message: "Vendor not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/vendors/:id", isAuthenticated, async (req: any, res) => {
+    const id = parseInt(req.params.id);
+    await storage.deleteVendor(id);
+    res.json({ success: true });
+  });
+
+  app.get("/api/purchase-orders/next-number", isAuthenticated, async (_req, res) => {
+    const poNumber = await storage.getNextPoNumber();
+    res.json({ poNumber });
+  });
+
+  const createPoSchema = z.object({
+    vendorId: z.number().int(),
+    orderDate: z.string(),
+    notes: z.string().optional().nullable(),
+    items: z.array(z.object({
+      sku: z.string(),
+      quantity: z.number().int().min(1),
+      hub: z.string().optional().nullable(),
+    })).min(1),
+  });
+
+  app.post("/api/purchase-orders", isAuthenticated, validate(createPoSchema), async (req: any, res) => {
+    const { vendorId, orderDate, notes, items } = req.body;
+    const userEmail = req.user?.claims?.email || "system";
+
+    const vendor = await storage.getVendor(vendorId);
+    if (!vendor) return res.status(404).json({ message: "Vendor not found" });
+
+    const poNumber = await storage.getNextPoNumber();
+
+    const po = await storage.createPurchaseOrder({
+      poNumber,
+      vendorId,
+      status: "Sent",
+      orderDate,
+      sentBy: userEmail,
+      notes: notes || null,
+    });
+
+    for (const item of items) {
+      await storage.createPurchaseOrderItem({
+        poId: po.id,
+        sku: item.sku,
+        quantity: item.quantity,
+        hub: item.hub || null,
+      });
+    }
+
+    const emailSent = await sendPurchaseOrderEmail(
+      vendor.email,
+      {
+        poNumber,
+        orderDate,
+        vendorName: vendor.company || vendor.name,
+        items,
+        sentBy: userEmail,
+        notes: notes || undefined,
+      }
+    );
+
+    res.json({ ...po, items, emailSent });
+  });
+
+  app.get("/api/purchase-orders", isAuthenticated, async (_req, res) => {
+    const pos = await storage.getPurchaseOrders();
+    const result = await Promise.all(pos.map(async (po) => {
+      const items = await storage.getPurchaseOrderItems(po.id);
+      const vendor = await storage.getVendor(po.vendorId);
+      return { ...po, items, vendor };
+    }));
+    res.json(result);
   });
 
   return httpServer;

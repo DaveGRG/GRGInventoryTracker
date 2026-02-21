@@ -1,6 +1,7 @@
 import {
   inventoryItems, locations, stockLevels, projects, allocations,
   transfers, pickLists, auditLog, appUsers, notificationRecipients,
+  vendors, purchaseOrders, purchaseOrderItems,
   type InventoryItem, type InsertInventoryItem,
   type Location, type InsertLocation,
   type StockLevel, type InsertStockLevel,
@@ -11,6 +12,9 @@ import {
   type AuditLogEntry, type InsertAuditLogEntry,
   type AppUser, type InsertAppUser,
   type NotificationRecipient, type InsertNotificationRecipient,
+  type Vendor, type InsertVendor,
+  type PurchaseOrder, type InsertPurchaseOrder,
+  type PurchaseOrderItem, type InsertPurchaseOrderItem,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -78,6 +82,21 @@ export interface IStorage {
   createNotificationRecipient(r: InsertNotificationRecipient): Promise<NotificationRecipient>;
   updateNotificationRecipient(id: number, data: Partial<InsertNotificationRecipient>): Promise<NotificationRecipient | undefined>;
   deleteNotificationRecipient(id: number): Promise<void>;
+
+  getVendors(): Promise<Vendor[]>;
+  getVendor(id: number): Promise<Vendor | undefined>;
+  createVendor(v: InsertVendor): Promise<Vendor>;
+  updateVendor(id: number, data: Partial<InsertVendor>): Promise<Vendor | undefined>;
+  deleteVendor(id: number): Promise<void>;
+
+  getPurchaseOrders(): Promise<PurchaseOrder[]>;
+  getPurchaseOrder(id: number): Promise<PurchaseOrder | undefined>;
+  createPurchaseOrder(po: InsertPurchaseOrder): Promise<PurchaseOrder>;
+  updatePurchaseOrder(id: number, data: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder | undefined>;
+  getNextPoNumber(): Promise<string>;
+
+  getPurchaseOrderItems(poId: number): Promise<PurchaseOrderItem[]>;
+  createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem>;
 
   runTransaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T>;
 }
@@ -319,6 +338,70 @@ export class DatabaseStorage implements IStorage {
 
   async deleteNotificationRecipient(id: number): Promise<void> {
     await db.delete(notificationRecipients).where(eq(notificationRecipients.id, id));
+  }
+
+  async getVendors(): Promise<Vendor[]> {
+    return db.select().from(vendors).orderBy(vendors.name);
+  }
+
+  async getVendor(id: number): Promise<Vendor | undefined> {
+    const [v] = await db.select().from(vendors).where(eq(vendors.id, id));
+    return v || undefined;
+  }
+
+  async createVendor(v: InsertVendor): Promise<Vendor> {
+    const [created] = await db.insert(vendors).values(v).returning();
+    return created;
+  }
+
+  async updateVendor(id: number, data: Partial<InsertVendor>): Promise<Vendor | undefined> {
+    const [updated] = await db.update(vendors).set(data).where(eq(vendors.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteVendor(id: number): Promise<void> {
+    await db.delete(vendors).where(eq(vendors.id, id));
+  }
+
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    return db.select().from(purchaseOrders).orderBy(desc(purchaseOrders.createdAt));
+  }
+
+  async getPurchaseOrder(id: number): Promise<PurchaseOrder | undefined> {
+    const [po] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id));
+    return po || undefined;
+  }
+
+  async createPurchaseOrder(po: InsertPurchaseOrder): Promise<PurchaseOrder> {
+    const [created] = await db.insert(purchaseOrders).values(po).returning();
+    return created;
+  }
+
+  async updatePurchaseOrder(id: number, data: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder | undefined> {
+    const [updated] = await db.update(purchaseOrders).set(data).where(eq(purchaseOrders.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async getNextPoNumber(): Promise<string> {
+    const result = await db.select({ maxPo: sql<string>`max(po_number)` }).from(purchaseOrders);
+    const maxPo = result[0]?.maxPo;
+    let num = 1;
+    if (maxPo) {
+      const match = maxPo.match(/PO#(\d+)/);
+      if (match) {
+        num = parseInt(match[1], 10) + 1;
+      }
+    }
+    return `PO#${String(num).padStart(4, "0")}`;
+  }
+
+  async getPurchaseOrderItems(poId: number): Promise<PurchaseOrderItem[]> {
+    return db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.poId, poId));
+  }
+
+  async createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
+    const [created] = await db.insert(purchaseOrderItems).values(item).returning();
+    return created;
   }
 
   async runTransaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {

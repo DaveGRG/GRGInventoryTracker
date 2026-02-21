@@ -19,6 +19,7 @@ import ParLevelsPage from "@/pages/par-levels";
 import ClientsPage from "@/pages/clients";
 import ManageSkusPage from "@/pages/manage-skus";
 import NotificationsPage from "@/pages/notifications";
+import VendorsPage from "@/pages/vendors";
 import NotFound from "@/pages/not-found";
 import logoImg from "@assets/image_1771694966878.png";
 
@@ -39,6 +40,7 @@ function AuthenticatedRoutes() {
       <Route path="/more/par-levels" component={ParLevelsPage} />
       <Route path="/more/manage-skus" component={ManageSkusPage} />
       <Route path="/more/notifications" component={NotificationsPage} />
+      <Route path="/more/vendors" component={VendorsPage} />
       <Route path="/clients" component={ClientsPage} />
       <Route component={NotFound} />
     </Switch>

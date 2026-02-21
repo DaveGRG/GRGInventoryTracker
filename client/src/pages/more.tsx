@@ -1,12 +1,13 @@
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Bell } from "lucide-react";
+import { Users, Bell, Building2 } from "lucide-react";
 import { Link } from "wouter";
 
 const menuItems = [
   { href: "/more/users", label: "User Management", desc: "Manage app users and roles", icon: Users, testId: "link-users" },
   { href: "/more/notifications", label: "Notifications", desc: "Manage email alert recipients", icon: Bell, testId: "link-notifications" },
+  { href: "/more/vendors", label: "Vendor Contacts", desc: "Manage vendors for purchase orders", icon: Building2, testId: "link-vendors" },
 ];
 
 export default function MorePage() {

@@ -4,6 +4,17 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-21: Purchase Order generation from Par Report
+  - vendors table (name, company, email, phone, active) with CRUD API
+  - purchase_orders table (po_number auto-increment PO#0001, vendor_id, status, order_date, sent_by)
+  - purchase_order_items table (po_id, sku, quantity, hub)
+  - Vendor Contacts management page at /more/vendors
+  - "Add to PO" button on each below-par item on Par Report page
+  - "Generate PO" sticky button at bottom when items selected
+  - PO dialog: auto PO number, today's date, vendor dropdown, +/- qty controls, notes, Send button
+  - PO email sent to vendor via Gmail with professional HTML template
+  - Email appears from GRG Playscapes Gmail account (vendor replies go to Gmail)
+  - API: GET/POST/PATCH/DELETE /api/vendors, GET /api/purchase-orders/next-number, POST/GET /api/purchase-orders
 - 2026-02-21: Email notifications for transfers
   - Nodemailer integration with Gmail App Password authentication
   - Notification recipients management page at /more/notifications (add, toggle active, delete)
