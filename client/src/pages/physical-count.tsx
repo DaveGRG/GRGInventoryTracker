@@ -275,50 +275,52 @@ export default function PhysicalCountPage() {
                         </button>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <div className="space-y-1 mt-1">
-                          {groupItems.map((item) => {
-                            const systemQty = item.systemQty;
-                            const isDiff = hasDifference(item.sku, systemQty);
-                            return (
-                              <Card
-                                key={item.sku}
-                                className={isDiff ? "border-primary/50 bg-primary/5" : ""}
-                                data-testid={`physical-count-item-${item.sku}`}
-                              >
-                                <CardContent className="p-3">
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
-                                      <span
-                                        className="text-sm font-mono font-semibold"
-                                        data-testid={`text-sku-${item.sku}`}
-                                      >
-                                        {item.sku}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-3 flex-shrink-0">
-                                      <div className="text-right">
-                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">System</p>
-                                        <p
-                                          className="text-sm font-semibold tabular-nums"
-                                          data-testid={`text-system-qty-${item.sku}`}
-                                        >
-                                          {systemQty}
-                                        </p>
-                                      </div>
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        value={getInputValue(item.sku, systemQty)}
-                                        onChange={(e) => handleQuantityChange(item.sku, e.target.value)}
-                                        className="w-20 text-center tabular-nums"
-                                        data-testid={`input-counted-qty-${item.sku}`}
-                                      />
-                                    </div>
+                        <div className="mt-1 border rounded-lg overflow-hidden">
+                          <div className="flex items-center justify-between gap-3 px-3 py-2 bg-muted/70 border-b sticky top-0 z-10">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">SKU</span>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium w-12 text-center">System</span>
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium w-20 text-center">Count</span>
+                            </div>
+                          </div>
+                          <div className="max-h-[60vh] overflow-y-auto">
+                            {groupItems.map((item) => {
+                              const systemQty = item.systemQty;
+                              const isDiff = hasDifference(item.sku, systemQty);
+                              return (
+                                <div
+                                  key={item.sku}
+                                  className={`flex items-center justify-between gap-3 px-3 py-2.5 border-b last:border-b-0 ${isDiff ? "bg-primary/5" : ""}`}
+                                  data-testid={`physical-count-item-${item.sku}`}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <span
+                                      className="text-sm font-mono font-semibold"
+                                      data-testid={`text-sku-${item.sku}`}
+                                    >
+                                      {item.sku}
+                                    </span>
                                   </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
+                                  <div className="flex items-center gap-3 flex-shrink-0">
+                                    <p
+                                      className="text-sm font-semibold tabular-nums w-12 text-center"
+                                      data-testid={`text-system-qty-${item.sku}`}
+                                    >
+                                      {systemQty}
+                                    </p>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={getInputValue(item.sku, systemQty)}
+                                      onChange={(e) => handleQuantityChange(item.sku, e.target.value)}
+                                      className="w-20 text-center tabular-nums"
+                                      data-testid={`input-counted-qty-${item.sku}`}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
