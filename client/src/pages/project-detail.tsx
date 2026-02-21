@@ -232,7 +232,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <AppHeader title="Product" />
-        <BottomNav />
+        <BottomNav showBack backTo="/clients" />
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-32" />
@@ -246,7 +246,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <AppHeader title="Product Not Found" />
-        <BottomNav />
+        <BottomNav showBack backTo="/clients" />
         <div className="p-4 text-center py-12">
           <p className="text-muted-foreground">Product not found.</p>
           <Button variant="outline" asChild className="mt-4">
@@ -260,16 +260,9 @@ export default function ProjectDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader title={project.projectName} />
-      <BottomNav />
+      <BottomNav showBack backTo="/clients" />
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
-        <Button variant="ghost" size="sm" asChild className="mb-2" data-testid="button-back-projects">
-          <Link href="/projects">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Products
-          </Link>
-        </Button>
-
         <Card>
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">

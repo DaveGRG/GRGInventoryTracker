@@ -8,11 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, LogOut, User } from "lucide-react";
-import { useLocation } from "wouter";
+import { LogOut } from "lucide-react";
 
-export function AppHeader({ title, showBack, backTo = "/more" }: { title: string; showBack?: boolean; backTo?: string }) {
-  const [, navigate] = useLocation();
+export function AppHeader({ title }: { title: string }) {
   const { user } = useAuth();
 
   const initials = user
@@ -23,16 +21,9 @@ export function AppHeader({ title, showBack, backTo = "/more" }: { title: string
     <header className="sticky top-0 z-40">
       <div className="flex items-center justify-between gap-2 px-5 h-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex items-center gap-2 min-w-0">
-          {showBack && (
-            <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8" onClick={() => navigate(backTo)} data-testid="button-back">
-              <ArrowLeft className="h-5 w-5" style={{ color: '#5c4a1e' }} />
-            </Button>
-          )}
-          {!showBack && (
-            <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-xs">GRG</span>
-            </div>
-          )}
+          <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-primary-foreground font-bold text-xs">GRG</span>
+          </div>
           <h1 className="text-2xl font-bold truncate" style={{ color: '#5c4a1e' }} data-testid="text-page-title">{title}</h1>
         </div>
         <DropdownMenu>

@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, AlertTriangle, Download } from "lucide-react";
-import { Link } from "wouter";
+import { AlertTriangle, Download } from "lucide-react";
 import type { ParLevelAlert } from "@/lib/types";
 
 export default function ParReportPage() {
@@ -19,16 +18,10 @@ export default function ParReportPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader title="Par Level Report" showBack />
-      <BottomNav />
+      <AppHeader title="Par Level Report" />
+      <BottomNav showBack backTo="/more" />
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
-        <div className="flex items-center justify-between gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/more"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Link>
-          </Button>
-        </div>
-
         {isLoading ? (
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}

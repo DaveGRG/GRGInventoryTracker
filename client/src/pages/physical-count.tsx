@@ -153,8 +153,8 @@ export default function PhysicalCountPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader title="Physical Count" showBack />
-      <BottomNav />
+      <AppHeader title="Physical Count" />
+      <BottomNav showBack backTo="/more" />
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
         <div className="space-y-2">

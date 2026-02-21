@@ -35,8 +35,8 @@ export default function ClientsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader title="Projects" showBack backTo="/" />
-      <BottomNav />
+      <AppHeader title="Projects" />
+      <BottomNav showBack backTo="/" />
 
       <div className="sticky top-[7.5rem] z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">

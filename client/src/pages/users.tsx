@@ -61,8 +61,8 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader title="Users" showBack />
-      <BottomNav />
+      <AppHeader title="Users" />
+      <BottomNav showBack backTo="/more" />
 
       <div className="p-4 space-y-3 max-w-2xl mx-auto">
         <div className="flex items-center justify-end gap-2">
