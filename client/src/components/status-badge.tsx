@@ -18,7 +18,7 @@ const itemStatusMap: Record<string, StatusType> = {
 };
 
 const projectStatusMap: Record<string, StatusType> = {
-  Pending: "info",
+  Pending: "neutral",
   Active: "success",
   Complete: "neutral",
   "On Hold": "warning",
