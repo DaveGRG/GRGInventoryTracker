@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Package, AlertTriangle, Truck, ClipboardList, ArrowRight, Clock, Users } from "lucide-react";
 import { Link } from "wouter";
 import type { DashboardData } from "@/lib/types";
@@ -97,31 +96,29 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <ScrollArea className="max-h-[240px]">
-                  <div className="space-y-2">
-                    {data.belowParItems.map((item) => (
-                      <div
-                        key={`${item.sku}-${item.hub}`}
-                        className="flex items-center justify-between gap-2 py-2 border-b last:border-0"
-                        data-testid={`card-par-alert-${item.sku}`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-mono font-medium truncate">{item.sku}</p>
-                          <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-sm tabular-nums">
-                            <span className="text-red-600 dark:text-red-400 font-semibold">{item.currentTotal}</span>
-                            <span className="text-muted-foreground"> / {item.parLevel}</span>
-                          </p>
-                          <Badge variant="outline" className="text-[10px] no-default-hover-elevate">
-                            {item.hub}
-                          </Badge>
-                        </div>
+                <div className="max-h-[240px] overflow-y-auto space-y-2">
+                  {data.belowParItems.map((item) => (
+                    <div
+                      key={`${item.sku}-${item.hub}`}
+                      className="flex items-center justify-between gap-2 py-2 border-b last:border-0"
+                      data-testid={`card-par-alert-${item.sku}`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-mono font-medium truncate">{item.sku}</p>
+                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm tabular-nums">
+                          <span className="text-red-600 dark:text-red-400 font-semibold">{item.currentTotal}</span>
+                          <span className="text-muted-foreground"> / {item.parLevel}</span>
+                        </p>
+                        <Badge variant="outline" className="text-[10px] no-default-hover-elevate">
+                          {item.hub}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
