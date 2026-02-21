@@ -279,7 +279,7 @@ export default function PhysicalCountPage() {
                           <div className="flex items-center justify-between gap-3 px-3 py-2 bg-muted/70 border-b sticky top-0 z-10">
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">SKU</span>
                             <div className="flex items-center gap-3 flex-shrink-0">
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium w-12 text-center">System</span>
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium w-16 text-left">System Qty</span>
                               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium w-20 text-center">Count</span>
                             </div>
                           </div>
@@ -303,7 +303,7 @@ export default function PhysicalCountPage() {
                                   </div>
                                   <div className="flex items-center gap-3 flex-shrink-0">
                                     <p
-                                      className="text-sm font-semibold tabular-nums w-12 text-center"
+                                      className="text-sm font-semibold tabular-nums w-16 text-left"
                                       data-testid={`text-system-qty-${item.sku}`}
                                     >
                                       {systemQty}
