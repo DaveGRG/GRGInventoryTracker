@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ClipboardCheck, Loader2 } from "lucide-react";
+import { Search, ClipboardCheck, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { InventoryItem, StockLevel, Location as LocationType } from "@shared/schema";
@@ -26,6 +27,7 @@ export default function PhysicalCountPage() {
   const [search, setSearch] = useState("");
   const [countedQuantities, setCountedQuantities] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const [submissionResult, setSubmissionResult] = useState<number | null>(null);
   const { toast } = useToast();
 
@@ -82,6 +84,31 @@ export default function PhysicalCountPage() {
     const parsed = parseInt(val, 10);
     if (isNaN(parsed)) return false;
     return parsed !== systemQty;
+  };
+
+  const getSkuPrefix = (sku: string): string => {
+    const match = sku.match(/^([A-Za-z]+)/);
+    return match ? match[1] : "Other";
+  };
+
+  const prefixLabels: Record<string, string> = {
+    CDR: "Cedar",
+    CT: "Cedar Tone",
+    BL: "Black Locust",
+  };
+
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, typeof filteredItems> = {};
+    for (const item of filteredItems) {
+      const prefix = getSkuPrefix(item.sku);
+      if (!groups[prefix]) groups[prefix] = [];
+      groups[prefix].push(item);
+    }
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredItems]);
+
+  const toggleCategory = (prefix: string) => {
+    setOpenCategories((prev) => ({ ...prev, [prefix]: !prev[prefix] }));
   };
 
   const diffCount = useMemo(() => {
@@ -219,48 +246,82 @@ export default function PhysicalCountPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="space-y-1">
-                {filteredItems.map((item) => {
-                  const systemQty = item.systemQty;
-                  const isDiff = hasDifference(item.sku, systemQty);
+              <div className="space-y-2">
+                {groupedItems.map(([prefix, groupItems]) => {
+                  const isOpen = openCategories[prefix] || false;
+                  const groupDiffs = groupItems.filter((item) => hasDifference(item.sku, item.systemQty)).length;
                   return (
-                    <Card
-                      key={item.sku}
-                      className={isDiff ? "border-primary/50 bg-primary/5" : ""}
-                      data-testid={`physical-count-item-${item.sku}`}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <span
-                              className="text-sm font-mono font-semibold"
-                              data-testid={`text-sku-${item.sku}`}
-                            >
-                              {item.sku}
-                            </span>
+                    <Collapsible key={prefix} open={isOpen} onOpenChange={() => toggleCategory(prefix)}>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          className="flex items-center justify-between w-full px-4 py-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                          data-testid={`toggle-category-${prefix}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            <span className="font-semibold text-sm">{prefix}</span>
+                            <span className="text-xs text-muted-foreground">{prefixLabels[prefix] || prefix}</span>
                           </div>
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            <div className="text-right">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">System</p>
-                              <p
-                                className="text-sm font-semibold tabular-nums"
-                                data-testid={`text-system-qty-${item.sku}`}
+                          <div className="flex items-center gap-2">
+                            {groupDiffs > 0 && (
+                              <Badge variant="default" className="no-default-hover-elevate text-xs tabular-nums">
+                                {groupDiffs}
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
+                              {groupItems.length}
+                            </Badge>
+                          </div>
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-1 mt-1">
+                          {groupItems.map((item) => {
+                            const systemQty = item.systemQty;
+                            const isDiff = hasDifference(item.sku, systemQty);
+                            return (
+                              <Card
+                                key={item.sku}
+                                className={isDiff ? "border-primary/50 bg-primary/5" : ""}
+                                data-testid={`physical-count-item-${item.sku}`}
                               >
-                                {systemQty}
-                              </p>
-                            </div>
-                            <Input
-                              type="number"
-                              min="0"
-                              value={getInputValue(item.sku, systemQty)}
-                              onChange={(e) => handleQuantityChange(item.sku, e.target.value)}
-                              className="w-20 text-center tabular-nums"
-                              data-testid={`input-counted-qty-${item.sku}`}
-                            />
-                          </div>
+                                <CardContent className="p-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <span
+                                        className="text-sm font-mono font-semibold"
+                                        data-testid={`text-sku-${item.sku}`}
+                                      >
+                                        {item.sku}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                      <div className="text-right">
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">System</p>
+                                        <p
+                                          className="text-sm font-semibold tabular-nums"
+                                          data-testid={`text-system-qty-${item.sku}`}
+                                        >
+                                          {systemQty}
+                                        </p>
+                                      </div>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        value={getInputValue(item.sku, systemQty)}
+                                        onChange={(e) => handleQuantityChange(item.sku, e.target.value)}
+                                        className="w-20 text-center tabular-nums"
+                                        data-testid={`input-counted-qty-${item.sku}`}
+                                      />
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </CollapsibleContent>
+                    </Collapsible>
                   );
                 })}
 
