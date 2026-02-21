@@ -255,11 +255,11 @@ export default function ManageSkusPage() {
                   <button
                     key={`heading-${group}`}
                     type="button"
-                    className="w-full sticky top-0 z-10"
+                    className="w-full sticky top-20 z-10"
                     onClick={() => toggleGroup(group)}
                     data-testid={`group-toggle-${displayName}`}
                   >
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md">
+                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md shadow-sm">
                       <div className="flex items-center gap-2">
                         {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                         <span className="text-sm font-semibold">{displayName}</span>
