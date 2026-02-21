@@ -35,7 +35,7 @@ export default function ClientsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <AppHeader title="Projects" />
+      <AppHeader title="Projects" showBack backTo="/" />
 
       <div className="sticky top-14 z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">

@@ -11,7 +11,7 @@ import {
 import { ArrowLeft, LogOut, User } from "lucide-react";
 import { useLocation } from "wouter";
 
-export function AppHeader({ title, showBack }: { title: string; showBack?: boolean }) {
+export function AppHeader({ title, showBack, backTo = "/more" }: { title: string; showBack?: boolean; backTo?: string }) {
   const [, navigate] = useLocation();
   const { user } = useAuth();
 
@@ -24,7 +24,7 @@ export function AppHeader({ title, showBack }: { title: string; showBack?: boole
       <div className="flex items-center justify-between gap-2 px-4 h-14 max-w-2xl mx-auto border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex items-center gap-2 min-w-0">
           {showBack && (
-            <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8" onClick={() => navigate("/more")} data-testid="button-back">
+            <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8" onClick={() => navigate(backTo)} data-testid="button-back">
               <ArrowLeft className="h-5 w-5" style={{ color: '#5c4a1e' }} />
             </Button>
           )}
