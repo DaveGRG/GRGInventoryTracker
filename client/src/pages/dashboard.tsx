@@ -48,7 +48,7 @@ export default function DashboardPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-1">
                     <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground font-medium">Active Products</span>
+                    <span className="text-xs text-muted-foreground font-medium">Active Projects</span>
                   </div>
                   <p className="text-2xl font-bold tabular-nums" data-testid="text-active-clients">{data?.activeClients || 0}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{data?.totalClients || 0} total</p>
