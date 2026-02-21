@@ -18,7 +18,7 @@ const itemStatusMap: Record<string, StatusType> = {
 };
 
 const projectStatusMap: Record<string, StatusType> = {
-  Planning: "info",
+  Pending: "info",
   Active: "success",
   Complete: "neutral",
   "On Hold": "warning",
@@ -32,8 +32,8 @@ const transferStatusMap: Record<string, StatusType> = {
 };
 
 const allocationStatusMap: Record<string, StatusType> = {
-  Planning: "info",
-  Pulled: "success",
+  Pending: "info",
+  Pulled: "info",
   Cancelled: "danger",
 };
 

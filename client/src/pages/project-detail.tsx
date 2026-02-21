@@ -207,7 +207,10 @@ export default function ProjectDetailPage() {
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-lg font-semibold">{project.projectName}</h2>
-              <StatusBadge status={project.status} type="project" />
+              <StatusBadge
+                status={allocationsData && allocationsData.length > 0 && allocationsData.every((a) => a.status === "Pulled") ? "Pulled" : project.status}
+                type={allocationsData && allocationsData.length > 0 && allocationsData.every((a) => a.status === "Pulled") ? "allocation" : "project"}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground">
