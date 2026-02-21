@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, ShoppingCart, Send, Plus, Minus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -48,7 +49,7 @@ export default function ParReportPage() {
     if (next.has(key)) {
       next.delete(key);
     } else {
-      next.set(key, { sku: item.sku, quantity: item.deficit, hub: item.hub, deficit: item.deficit });
+      next.set(key, { sku: item.sku, quantity: 0, hub: item.hub, deficit: item.deficit });
     }
     setSelectedItems(next);
   };
@@ -69,8 +70,15 @@ export default function ParReportPage() {
   const updatePoItemQty = (index: number, delta: number) => {
     setPoItems((prev) => prev.map((item, i) => {
       if (i !== index) return item;
-      const newQty = Math.max(1, item.quantity + delta);
+      const newQty = Math.max(0, item.quantity + delta);
       return { ...item, quantity: newQty };
+    }));
+  };
+
+  const setPoItemQty = (index: number, value: number) => {
+    setPoItems((prev) => prev.map((item, i) => {
+      if (i !== index) return item;
+      return { ...item, quantity: Math.max(0, value) };
     }));
   };
 
@@ -286,14 +294,20 @@ export default function ParReportPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => updatePoItemQty(index, -1)}
-                        disabled={item.quantity <= 1}
+                        disabled={item.quantity <= 0}
                         data-testid={`button-decrease-${item.sku}`}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-10 text-center text-sm font-mono tabular-nums font-semibold" data-testid={`qty-${item.sku}`}>
-                        {item.quantity}
-                      </span>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        className="w-14 h-8 text-center text-sm font-mono tabular-nums font-semibold px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        value={item.quantity}
+                        onChange={(e) => setPoItemQty(index, parseInt(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
+                        data-testid={`qty-${item.sku}`}
+                      />
                       <Button
                         variant="outline"
                         size="sm"
