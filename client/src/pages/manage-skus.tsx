@@ -253,16 +253,18 @@ export default function ManageSkusPage() {
 
                 return (
                   <Collapsible key={group} open={isOpen} onOpenChange={() => toggleGroup(group)}>
-                    <CollapsibleTrigger className="w-full" data-testid={`group-toggle-${displayName}`}>
-                      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md sticky top-0 z-10">
-                        <div className="flex items-center gap-2">
-                          {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                          <span className="text-sm font-semibold">{displayName}</span>
+                    <div className="sticky top-0 z-10">
+                      <CollapsibleTrigger className="w-full" data-testid={`group-toggle-${displayName}`}>
+                        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md">
+                          <div className="flex items-center gap-2">
+                            {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                            <span className="text-sm font-semibold">{displayName}</span>
+                          </div>
+                          {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>}
+                          {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>}
                         </div>
-                        {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>}
-                        {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>}
-                      </div>
-                    </CollapsibleTrigger>
+                      </CollapsibleTrigger>
+                    </div>
                     <CollapsibleContent>
                       <div className="space-y-1 py-1">
                         {groupItems.map((item) => {
