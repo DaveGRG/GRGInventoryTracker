@@ -4,6 +4,13 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-21: CSV-first product creation workflow
+  - Product creation starts with CSV upload (Catalog ID, Product name, SKU, QTY columns)
+  - Step 2 shows CSV preview and asks for Location (hub) and Job Name
+  - Product name and Catalog ID auto-populated from CSV data
+  - Backend creates product with inline allocations in one request
+  - catalogId field added to projects schema for external reference
+  - After creation, navigates directly to product detail page
 - 2026-02-21: Purchase Order generation from Par Report
   - vendors table (name, company, email, phone, active) with CRUD API
   - purchase_orders table (po_number auto-increment PO#0001, vendor_id, status, order_date, sent_by)

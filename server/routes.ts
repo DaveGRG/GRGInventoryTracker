@@ -38,10 +38,15 @@ const createBatchTransferSchema = z.object({
 
 const createProjectSchema = z.object({
   projectName: z.string().min(1),
+  catalogId: z.string().optional().nullable(),
   client: z.string().min(1),
   assignedHub: z.enum(["Farm", "MKE"]),
   projectLead: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  allocations: z.array(z.object({
+    sku: z.string().min(1),
+    quantity: z.number().int().min(1),
+  })).optional(),
 });
 
 const createAllocationSchema = z.object({
@@ -383,12 +388,13 @@ export async function registerRoutes(
   });
 
   app.post("/api/projects", isAuthenticated, validate(createProjectSchema), async (req: any, res) => {
-    const { projectName, client, assignedHub, projectLead, notes } = req.body;
+    const { projectName, catalogId, client, assignedHub, projectLead, notes, allocations: rows } = req.body;
 
     const projectId = await storage.getNextProjectId();
     const project = await storage.createProject({
       projectId,
       projectName,
+      catalogId: catalogId || null,
       client,
       assignedHub,
       status: "Planning",
@@ -397,6 +403,26 @@ export async function registerRoutes(
       startDate: null,
       endDate: null,
     });
+
+    if (rows && rows.length > 0) {
+      const allLocs = await storage.getLocations();
+      const hubLoc = allLocs.find((l) => l.hub === assignedHub && l.locationId !== "TRANSIT");
+      const effectiveLocation = hubLoc?.locationId || assignedHub;
+
+      for (const row of rows) {
+        const item = await storage.getInventoryItem(row.sku);
+        if (!item) continue;
+        await storage.createAllocation({
+          projectId,
+          sku: row.sku,
+          quantity: row.quantity,
+          status: "Reserved",
+          sourceLocation: effectiveLocation,
+          allocatedBy: req.user?.claims?.sub || "system",
+          allocatedDate: new Date().toISOString().split("T")[0],
+        });
+      }
+    }
 
     res.json(project);
   });

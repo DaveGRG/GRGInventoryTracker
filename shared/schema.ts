@@ -69,6 +69,7 @@ export const stockLevels = pgTable(
 export const projects = pgTable("projects", {
   projectId: text("project_id").primaryKey(),
   projectName: text("project_name").notNull(),
+  catalogId: text("catalog_id"),
   client: text("client").notNull(),
   assignedHub: text("assigned_hub").notNull(),
   status: text("status").notNull().default("Planning"),

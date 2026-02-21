@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
@@ -9,31 +9,75 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Calendar, User, MapPin, Search, ChevronDown, Check } from "lucide-react";
+import { Plus, Calendar, User, MapPin, Search, Upload, ChevronDown, Check, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Project } from "@shared/schema";
+import type { Project, InventoryItem } from "@shared/schema";
+
+interface CsvRow {
+  catalogId: string;
+  productName: string;
+  sku: string;
+  qty: number;
+  valid?: boolean;
+}
+
+function parseCsvLine(line: string, sep: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === sep) {
+        fields.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
 
 export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
-  const [projectName, setProjectName] = useState("");
+  const [step, setStep] = useState<"upload" | "details">("upload");
+  const [csvRows, setCsvRows] = useState<CsvRow[]>([]);
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
+  const [productName, setProductName] = useState("");
+  const [catalogId, setCatalogId] = useState("");
   const [client, setClient] = useState("");
   const [assignedHub, setAssignedHub] = useState("Farm");
-  const [projectLead, setProjectLead] = useState("");
-  const [notes, setNotes] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
+
+  const { data: inventoryItems } = useQuery<InventoryItem[]>({
+    queryKey: ["/api/inventory"],
+  });
+  const validSkus = new Set(inventoryItems?.map((i) => i.sku) || []);
 
   const existingClients = Array.from(
     new Set(projects?.map((p) => p.client).filter(Boolean) || [])
@@ -51,9 +95,10 @@ export default function ProjectsPage() {
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      toast({ title: "Product created", description: `${project.projectName} has been created.` });
+      toast({ title: "Product created", description: `${project.projectName} has been created with ${csvRows.length} material(s).` });
       setCreateOpen(false);
       resetForm();
+      navigate(`/projects/${project.projectId}`);
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -61,11 +106,110 @@ export default function ProjectsPage() {
   });
 
   const resetForm = () => {
-    setProjectName("");
+    setStep("upload");
+    setCsvRows([]);
+    setCsvErrors([]);
+    setProductName("");
+    setCatalogId("");
     setClient("");
     setAssignedHub("Farm");
-    setProjectLead("");
-    setNotes("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const parseCsv = (text: string) => {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length < 2) {
+      setCsvErrors(["CSV must have a header row and at least one data row."]);
+      return;
+    }
+
+    const headerLine = lines[0];
+    const sep = headerLine.includes("\t") ? "\t" : ",";
+    const headers = parseCsvLine(headerLine, sep).map((h) => h.toLowerCase().replace(/['"]/g, ""));
+
+    const catalogIdx = headers.findIndex((h) => h.includes("catalog") && h.includes("id"));
+    const nameIdx = headers.findIndex((h) => h.includes("product") && h.includes("name"));
+    const skuIdx = headers.findIndex((h) => h === "sku" || h === "item" || h === "material");
+    const qtyIdx = headers.findIndex((h) => h === "qty" || h === "quantity" || h === "amount");
+
+    const missing: string[] = [];
+    if (catalogIdx === -1) missing.push("Catalog ID");
+    if (nameIdx === -1) missing.push("Product name");
+    if (skuIdx === -1) missing.push("SKU");
+    if (qtyIdx === -1) missing.push("QTY");
+
+    if (missing.length > 0) {
+      setCsvErrors([`Missing required columns: ${missing.join(", ")}. Expected: Catalog ID, Product name, SKU, QTY`]);
+      return;
+    }
+
+    const rows: CsvRow[] = [];
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCsvLine(lines[i], sep);
+      const sku = cols[skuIdx]?.trim();
+      const rawQty = cols[qtyIdx]?.trim();
+      const qty = parseInt(rawQty, 10);
+
+      if (!sku) continue;
+      if (isNaN(qty) || qty <= 0) {
+        errors.push(`Row ${i + 1}: Invalid quantity "${rawQty}" for SKU "${sku}"`);
+        continue;
+      }
+
+      const skuValid = validSkus.has(sku);
+      if (!skuValid) {
+        errors.push(`Row ${i + 1}: SKU "${sku}" not found in inventory`);
+      }
+
+      rows.push({
+        catalogId: cols[catalogIdx]?.trim() || "",
+        productName: cols[nameIdx]?.trim() || "",
+        sku,
+        qty,
+        valid: skuValid,
+      });
+    }
+
+    if (rows.length === 0) {
+      setCsvErrors(["No valid rows found in CSV."]);
+      return;
+    }
+
+    setCsvRows(rows);
+    setCsvErrors(errors);
+
+    const firstRow = rows[0];
+    if (firstRow.productName) setProductName(firstRow.productName);
+    if (firstRow.catalogId) setCatalogId(firstRow.catalogId);
+
+    setStep("details");
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      parseCsv(text);
+    };
+    reader.readAsText(file);
+  };
+
+  const validRows = csvRows.filter((r) => r.valid !== false);
+  const hasErrors = csvErrors.length > 0 && validRows.length === 0;
+
+  const handleCreate = () => {
+    const allocations = validRows.map((r) => ({ sku: r.sku, quantity: r.qty }));
+    createMutation.mutate({
+      projectName: productName,
+      catalogId: catalogId || undefined,
+      client,
+      assignedHub,
+      allocations: allocations.length > 0 ? allocations : undefined,
+    });
   };
 
   const filtered = projects?.filter((p) => {
@@ -96,7 +240,7 @@ export default function ProjectsPage() {
                 data-testid="input-search-projects"
               />
             </div>
-            <Button size="sm" onClick={() => setCreateOpen(true)} data-testid="button-new-project">
+            <Button size="sm" onClick={() => { resetForm(); setCreateOpen(true); }} data-testid="button-new-project">
               <Plus className="h-4 w-4 mr-1.5" />
               New
             </Button>
@@ -123,7 +267,7 @@ export default function ProjectsPage() {
         <div className="p-4 space-y-3 max-w-2xl mx-auto">
           {filtered?.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <p className="text-sm">No projects found</p>
+              <p className="text-sm">No products found</p>
             </div>
           ) : (
             filtered?.map((project) => (
@@ -163,84 +307,164 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>New Product</DialogTitle>
+            <DialogTitle>{step === "upload" ? "Upload Product CSV" : "Complete Product Setup"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Product Name</Label>
-              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} data-testid="input-project-name" />
-            </div>
-            <div className="relative">
-              <Label>Project</Label>
-              <div className="relative">
-                <Input
-                  value={client}
-                  onChange={(e) => {
-                    setClient(e.target.value);
-                    setClientDropdownOpen(true);
-                  }}
-                  onFocus={() => setClientDropdownOpen(true)}
-                  onBlur={() => setTimeout(() => setClientDropdownOpen(false), 150)}
-                  placeholder="Select or type a project name"
-                  data-testid="input-project-client"
+
+          {step === "upload" && (
+            <div className="space-y-4">
+              <div className="border-2 border-dashed rounded-lg p-6 text-center space-y-3">
+                <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Upload a CSV file</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Required columns: Catalog ID, Product name, SKU, QTY
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.tsv,.txt"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  data-testid="input-csv-upload"
                 />
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  data-testid="button-select-csv"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Select CSV File
+                </Button>
               </div>
-              {clientDropdownOpen && filteredClients.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto" data-testid="dropdown-client-list">
-                  {filteredClients.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover-elevate cursor-pointer text-left"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setClient(c);
-                        setClientDropdownOpen(false);
-                      }}
-                      data-testid={`option-client-${c}`}
-                    >
-                      {client === c && <Check className="h-3.5 w-3.5 text-foreground" />}
-                      <span>{c}</span>
-                    </button>
+              {csvErrors.length > 0 && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 space-y-1">
+                  {csvErrors.map((err, i) => (
+                    <p key={i} className="text-xs text-destructive flex items-start gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      {err}
+                    </p>
                   ))}
                 </div>
               )}
             </div>
-            <div>
-              <Label>Assigned Hub</Label>
-              <Select value={assignedHub} onValueChange={setAssignedHub}>
-                <SelectTrigger data-testid="select-project-hub">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Farm">Farm</SelectItem>
-                  <SelectItem value="MKE">MKE</SelectItem>
-                </SelectContent>
-              </Select>
+          )}
+
+          {step === "details" && (
+            <div className="space-y-4">
+              <div className="rounded-md bg-muted p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold">CSV Preview</span>
+                  <Badge variant="outline" className="text-xs">{validRows.length}/{csvRows.length} valid</Badge>
+                </div>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {csvRows.map((row, i) => (
+                    <div key={i} className={`flex justify-between text-xs ${row.valid === false ? "text-destructive line-through opacity-60" : ""}`}>
+                      <span className="font-mono">{row.sku}</span>
+                      <span className="tabular-nums">{row.qty}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {csvErrors.length > 0 && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 space-y-1">
+                  {csvErrors.map((err, i) => (
+                    <p key={i} className="text-xs text-destructive flex items-start gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      {err}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <Label>Product Name</Label>
+                <Input
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  data-testid="input-product-name"
+                />
+              </div>
+
+              <div>
+                <Label>Catalog ID</Label>
+                <Input
+                  value={catalogId}
+                  onChange={(e) => setCatalogId(e.target.value)}
+                  placeholder="From CSV"
+                  data-testid="input-catalog-id"
+                />
+              </div>
+
+              <div>
+                <Label>Location</Label>
+                <Select value={assignedHub} onValueChange={setAssignedHub}>
+                  <SelectTrigger data-testid="select-project-hub">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Farm">Farm</SelectItem>
+                    <SelectItem value="MKE">MKE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="relative">
+                <Label>Job Name</Label>
+                <div className="relative">
+                  <Input
+                    value={client}
+                    onChange={(e) => {
+                      setClient(e.target.value);
+                      setClientDropdownOpen(true);
+                    }}
+                    onFocus={() => setClientDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setClientDropdownOpen(false), 150)}
+                    placeholder="Select or type a job name"
+                    data-testid="input-project-client"
+                  />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                </div>
+                {clientDropdownOpen && filteredClients.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto" data-testid="dropdown-client-list">
+                    {filteredClients.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm hover-elevate cursor-pointer text-left"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setClient(c);
+                          setClientDropdownOpen(false);
+                        }}
+                        data-testid={`option-client-${c}`}
+                      >
+                        {client === c && <Check className="h-3.5 w-3.5 text-foreground" />}
+                        <span>{c}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => { setStep("upload"); setCsvRows([]); setCsvErrors([]); }}>
+                  Back
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  disabled={!productName || !client || hasErrors || createMutation.isPending}
+                  data-testid="button-create-product"
+                >
+                  {createMutation.isPending ? "Creating..." : "Create Product"}
+                </Button>
+              </DialogFooter>
             </div>
-            <div>
-              <Label>Project Lead (optional)</Label>
-              <Input value={projectLead} onChange={(e) => setProjectLead(e.target.value)} data-testid="input-project-lead" />
-            </div>
-            <div>
-              <Label>Notes (optional)</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} data-testid="input-project-notes" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => createMutation.mutate({ projectName, client, assignedHub, projectLead: projectLead || undefined, notes: notes || undefined })}
-              disabled={!projectName || !client || createMutation.isPending}
-              data-testid="button-save-project"
-            >
-              {createMutation.isPending ? "Creating..." : "Create Product"}
-            </Button>
-          </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
