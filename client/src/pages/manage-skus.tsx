@@ -225,7 +225,7 @@ export default function ManageSkusPage() {
             {search ? "No matching SKUs found" : "No SKUs yet"}
           </p>
         ) : (
-          <div className="space-y-1">
+          <div>
             {(() => {
               const grouped: Record<string, InventoryItem[]> = {};
               for (const item of filtered) {
@@ -245,69 +245,70 @@ export default function ManageSkusPage() {
                 });
               };
 
-              return groupOrder.map((group) => {
+              return groupOrder.flatMap((group) => {
                 const groupItems = grouped[group];
                 const displayName = speciesDisplayName[group] || group;
                 const isOpen = expandedGroups.has(group) || isSearching;
+                const elements: JSX.Element[] = [];
 
-                return (
-                  <div key={group}>
-                    <button
-                      type="button"
-                      className="w-full sticky top-0 z-10"
-                      onClick={() => toggleGroup(group)}
-                      data-testid={`group-toggle-${displayName}`}
-                    >
-                      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md">
-                        <div className="flex items-center gap-2">
-                          {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                          <span className="text-sm font-semibold">{displayName}</span>
-                        </div>
-                        {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>}
-                        {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>}
+                elements.push(
+                  <button
+                    key={`heading-${group}`}
+                    type="button"
+                    className="w-full sticky top-0 z-10"
+                    onClick={() => toggleGroup(group)}
+                    data-testid={`group-toggle-${displayName}`}
+                  >
+                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md">
+                      <div className="flex items-center gap-2">
+                        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                        <span className="text-sm font-semibold">{displayName}</span>
                       </div>
-                    </button>
-                    {isOpen && (
-                      <div className="space-y-1 py-1">
-                        {groupItems.map((item) => {
-                          const isEdited = !!editedLevels[item.sku];
-                          return (
-                            <Card
-                              key={item.sku}
-                              className={isEdited ? "border-primary/50 bg-primary/5" : ""}
-                              data-testid={`card-sku-${item.sku}`}
-                            >
-                              <CardContent className="p-3">
-                                <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2">
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-mono font-medium truncate" data-testid={`text-sku-${item.sku}`}>{item.sku}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                                  </div>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    value={getDisplayValue(item.sku, "farm")}
-                                    onChange={(e) => handleParChange(item.sku, "farm", e.target.value)}
-                                    className="w-16 text-center tabular-nums"
-                                    data-testid={`input-farm-par-${item.sku}`}
-                                  />
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    value={getDisplayValue(item.sku, "mke")}
-                                    onChange={(e) => handleParChange(item.sku, "mke", e.target.value)}
-                                    className="w-16 text-center tabular-nums"
-                                    data-testid={`input-mke-par-${item.sku}`}
-                                  />
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                      {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>}
+                      {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>}
+                    </div>
+                  </button>
                 );
+
+                if (isOpen) {
+                  groupItems.forEach((item) => {
+                    const isEdited = !!editedLevels[item.sku];
+                    elements.push(
+                      <Card
+                        key={item.sku}
+                        className={`mt-1 ${isEdited ? "border-primary/50 bg-primary/5" : ""}`}
+                        data-testid={`card-sku-${item.sku}`}
+                      >
+                        <CardContent className="p-3">
+                          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-mono font-medium truncate" data-testid={`text-sku-${item.sku}`}>{item.sku}</p>
+                              <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                            </div>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={getDisplayValue(item.sku, "farm")}
+                              onChange={(e) => handleParChange(item.sku, "farm", e.target.value)}
+                              className="w-16 text-center tabular-nums"
+                              data-testid={`input-farm-par-${item.sku}`}
+                            />
+                            <Input
+                              type="number"
+                              min="0"
+                              value={getDisplayValue(item.sku, "mke")}
+                              onChange={(e) => handleParChange(item.sku, "mke", e.target.value)}
+                              className="w-16 text-center tabular-nums"
+                              data-testid={`input-mke-par-${item.sku}`}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  });
+                }
+
+                return elements;
               });
             })()}
           </div>
