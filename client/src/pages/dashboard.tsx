@@ -57,21 +57,6 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild data-testid="button-quick-transfer">
-              <Link href="/transfers/new">
-                <Truck className="h-4 w-4 mr-1.5" />
-                New Transfer
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild data-testid="button-quick-project">
-              <Link href="/projects/new">
-                <ClipboardList className="h-4 w-4 mr-1.5" />
-                New Product
-              </Link>
-            </Button>
-          </div>
-
           {data?.belowParItems && data.belowParItems.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
