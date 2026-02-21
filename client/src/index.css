@@ -171,7 +171,12 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
+    background-color: hsla(93, 72%, 38%, 0.5);
+  }
+
+  #root > div {
+    @apply max-w-2xl mx-auto bg-background;
   }
 }
 
