@@ -266,16 +266,15 @@ export default function ManageSkusPage() {
                           <span className="text-sm font-semibold">{displayName}</span>
                         </div>
                         {isOpen && (
-                          <span className="col-span-2 text-[9px] text-muted-foreground uppercase tracking-wider font-semibold text-center">Par</span>
+                          <>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>
+                            <div className="flex flex-col items-center">
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">Par</span>
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>
+                            </div>
+                          </>
                         )}
                       </div>
-                      {isOpen && (
-                        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 mt-0.5">
-                          <div />
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>
-                        </div>
-                      )}
                     </div>
                   </button>
                 );
