@@ -14,7 +14,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80" data-testid="bottom-navigation">
-      <div className="flex items-center justify-around">
+      <div className="flex items-center justify-around max-w-2xl mx-auto">
         {navItems.map((item) => {
           const isActive = item.path === "/" ? location === "/" : location.startsWith(item.path);
           const Icon = item.icon;
