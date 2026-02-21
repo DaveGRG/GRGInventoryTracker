@@ -286,7 +286,6 @@ export default function InventoryPage() {
                                   <span className="text-sm font-mono font-semibold">{item.sku}</span>
                                   <StatusBadge status={item.status} />
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
                               </div>
                               <div className="text-right flex-shrink-0">
                                 <p className="text-xl font-bold tabular-nums" data-testid={`text-qty-${item.sku}`}>{qty}</p>
@@ -312,7 +311,6 @@ export default function InventoryPage() {
                                 <span className="text-sm font-mono font-semibold">{item.sku}</span>
                                 <StatusBadge status={item.status} />
                               </div>
-                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>
                             </div>
                             <div className="text-right flex-shrink-0">
                               <p className="text-xl font-bold tabular-nums text-muted-foreground" data-testid={`text-qty-${item.sku}`}>0</p>
