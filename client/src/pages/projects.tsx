@@ -145,9 +145,21 @@ export default function ProjectsPage() {
 
     const rows: CsvRow[] = [];
     const errors: string[] = [];
+    let foundProductName = "";
+    let foundCatalogId = "";
 
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCsvLine(lines[i], sep);
+
+      if (nameIdx >= 0 && !foundProductName) {
+        const val = cols[nameIdx]?.trim();
+        if (val) foundProductName = val;
+      }
+      if (catalogIdx >= 0 && !foundCatalogId) {
+        const val = cols[catalogIdx]?.trim();
+        if (val) foundCatalogId = val;
+      }
+
       const sku = cols[skuIdx]?.trim();
       const rawQty = cols[qtyIdx]?.trim();
       const qty = parseInt(rawQty, 10);
@@ -164,8 +176,8 @@ export default function ProjectsPage() {
       }
 
       rows.push({
-        catalogId: catalogIdx >= 0 ? (cols[catalogIdx]?.trim() || "") : "",
-        productName: nameIdx >= 0 ? (cols[nameIdx]?.trim() || "") : "",
+        catalogId: foundCatalogId,
+        productName: foundProductName,
         sku,
         qty,
         valid: skuValid,
@@ -180,9 +192,8 @@ export default function ProjectsPage() {
     setCsvRows(rows);
     setCsvErrors(errors);
 
-    const firstRow = rows[0];
-    if (firstRow.productName) setProductName(firstRow.productName);
-    if (firstRow.catalogId) setCatalogId(firstRow.catalogId);
+    if (foundProductName) setProductName(foundProductName);
+    if (foundCatalogId) setCatalogId(foundCatalogId);
 
     setStep("details");
   };
