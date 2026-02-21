@@ -257,7 +257,7 @@ export default function ProjectsPage() {
             </Button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {["all", "Planning", "Active", "On Hold", "Complete"].map((s) => (
+            {["all", "Pending", "Active", "On Hold", "Complete"].map((s) => (
               <Badge
                 key={s}
                 variant={statusFilter === s ? "default" : "outline"}

@@ -223,7 +223,7 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveAllocationsForSku(sku: string): Promise<Allocation[]> {
     return db.select().from(allocations).where(
-      and(eq(allocations.sku, sku), eq(allocations.status, "Planning"))
+      and(eq(allocations.sku, sku), eq(allocations.status, "Pending"))
     );
   }
 

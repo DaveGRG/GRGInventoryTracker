@@ -18,7 +18,7 @@ import { z } from "zod";
 export const categoryEnum = ["Lumber", "Hardware", "Ready-Made"] as const;
 export const itemStatusEnum = ["Active", "Discontinuing", "Discontinued"] as const;
 export const hubEnum = ["Farm", "MKE", "Transit"] as const;
-export const projectStatusEnum = ["Planning", "Active", "Complete", "On Hold"] as const;
+export const projectStatusEnum = ["Pending", "Active", "Complete", "On Hold"] as const;
 export const allocationStatusEnum = ["Pending", "Pulled", "Cancelled"] as const;
 export const transferStatusEnum = ["Requested", "In Transit", "Received", "Cancelled"] as const;
 export const pickListStatusEnum = ["Pending", "In Progress", "Completed", "Cancelled"] as const;
@@ -72,7 +72,7 @@ export const projects = pgTable("projects", {
   catalogId: text("catalog_id"),
   client: text("client").notNull(),
   assignedHub: text("assigned_hub").notNull(),
-  status: text("status").notNull().default("Planning"),
+  status: text("status").notNull().default("Pending"),
   startDate: date("start_date"),
   endDate: date("end_date"),
   projectLead: text("project_lead"),

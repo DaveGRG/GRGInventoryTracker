@@ -276,7 +276,7 @@ export async function registerRoutes(
 
     const uniqueClients = new Set(allProjects.map((p) => p.client));
     const activeClients = new Set(
-      allProjects.filter((p) => p.status === "Active" || p.status === "Planning").map((p) => p.client)
+      allProjects.filter((p) => p.status === "Active" || p.status === "Pending").map((p) => p.client)
     );
 
     res.json({
@@ -284,7 +284,7 @@ export async function registerRoutes(
       belowParItems,
       recentActivity: auditEntries.slice(0, 10),
       activeTransfers: allTransfers.filter((t) => t.status === "Requested" || t.status === "In Transit").length,
-      activeProjects: allProjects.filter((p) => p.status === "Active" || p.status === "Planning").length,
+      activeProjects: allProjects.filter((p) => p.status === "Active" || p.status === "Pending").length,
       totalClients: uniqueClients.size,
       activeClients: activeClients.size,
       pendingPickLists: 0,
@@ -310,7 +310,7 @@ export async function registerRoutes(
       }
       const entry = clientMap.get(clientName)!;
       entry.products.push(project);
-      if (project.status === "Active" || project.status === "Planning") entry.activeCount++;
+      if (project.status === "Active" || project.status === "Pending") entry.activeCount++;
       if (project.status === "Complete") entry.completedCount++;
     }
 
