@@ -174,7 +174,7 @@ export default function InventoryPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <Badge
               variant={belowParOnly ? "default" : "outline"}
               className={`cursor-pointer text-xs ${belowParOnly ? "" : ""}`}
