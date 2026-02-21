@@ -178,9 +178,26 @@
 
   #root > div {
     @apply max-w-2xl mx-auto bg-background;
-    border-left: 6px solid;
-    border-right: 6px solid;
-    border-image: linear-gradient(to top, rgba(92, 74, 30, 0.2), #5c4a1e) 1;
+  }
+
+  body::before,
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: linear-gradient(to top, rgba(92, 74, 30, 0.2), #5c4a1e);
+    z-index: 60;
+    pointer-events: none;
+  }
+
+  body::before {
+    left: max(0px, calc(50% - 21rem));
+  }
+
+  body::after {
+    right: max(0px, calc(50% - 21rem));
   }
 }
 
