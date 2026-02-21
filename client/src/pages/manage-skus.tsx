@@ -259,13 +259,23 @@ export default function ManageSkusPage() {
                     onClick={() => toggleGroup(group)}
                     data-testid={`group-toggle-${displayName}`}
                   >
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md shadow-sm">
-                      <div className="flex items-center gap-2">
-                        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                        <span className="text-sm font-semibold">{displayName}</span>
+                    <div className="px-4 py-2 border-b bg-muted rounded-md shadow-sm">
+                      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2">
+                        <div className="flex items-center gap-2">
+                          {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                          <span className="text-sm font-semibold">{displayName}</span>
+                        </div>
+                        {isOpen && (
+                          <span className="col-span-2 text-[9px] text-muted-foreground uppercase tracking-wider font-semibold text-center">Par</span>
+                        )}
                       </div>
-                      {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>}
-                      {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>}
+                      {isOpen && (
+                        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 mt-0.5">
+                          <div />
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
