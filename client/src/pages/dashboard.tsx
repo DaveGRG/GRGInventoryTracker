@@ -90,21 +90,16 @@ export default function DashboardPage() {
 
           {data?.belowParItems && data.belowParItems.length > 0 && (
             <Card>
-              <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                   Below Par Alerts
                 </CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/inventory?filter=belowPar">
-                    View All <ArrowRight className="h-3 w-3 ml-1" />
-                  </Link>
-                </Button>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <ScrollArea className="max-h-[300px]">
+                <ScrollArea className="max-h-[240px]">
                   <div className="space-y-2">
-                    {data.belowParItems.slice(0, 10).map((item) => (
+                    {data.belowParItems.map((item) => (
                       <div
                         key={`${item.sku}-${item.hub}`}
                         className="flex items-center justify-between gap-2 py-2 border-b last:border-0"
