@@ -191,13 +191,13 @@ export default function ManageSkusPage() {
           </Badge>
         )}
 
-        <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 px-3 pb-0">
+        <div className="text-right px-3">
+          <span className="text-base font-semibold">Set Par</span>
+        </div>
+        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-3 pb-0">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Item</span>
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Set Par</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">Farm</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">MKE</span>
-          </div>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">Farm</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">MKE</span>
         </div>
 
         {isLoading ? (
