@@ -202,7 +202,7 @@ export default function PhysicalCountPage() {
                   value={loc.locationId}
                   data-testid={`select-location-option-${loc.locationId}`}
                 >
-                  {loc.locationName} ({loc.hub})
+                  {loc.locationName}
                 </SelectItem>
               ))}
             </SelectContent>
