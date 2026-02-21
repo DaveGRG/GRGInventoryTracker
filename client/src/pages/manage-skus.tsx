@@ -191,8 +191,9 @@ export default function ManageSkusPage() {
           </Badge>
         )}
 
-        <div className="text-right px-3">
-          <span className="text-base font-semibold">Set Par</span>
+        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-3 pb-0">
+          <div />
+          <span className="col-span-2 text-base font-semibold text-center" style={{ gridColumn: "2 / -1" }}>Set Par</span>
         </div>
         <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-3 pb-0">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Item</span>
