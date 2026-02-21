@@ -188,7 +188,7 @@ export default function ManageSkusPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader title="Manage SKUs" />
-      <BottomNav showBack backTo="/more" />
+      <BottomNav showBack backTo="/" />
 
       <div className="p-4 space-y-3 max-w-2xl mx-auto">
         <div className="flex items-center gap-2">
