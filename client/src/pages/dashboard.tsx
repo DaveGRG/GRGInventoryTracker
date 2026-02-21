@@ -23,14 +23,7 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
-          <div className="grid grid-cols-3 gap-2">
-            <Card>
-              <CardContent className="px-2 py-1.5 flex items-center justify-center gap-1.5">
-                <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
-                <span className="text-sm font-bold tabular-nums text-red-600 dark:text-red-400" data-testid="text-below-par-count">{data?.belowParItems?.length || 0}</span>
-                <span className="text-[10px] text-muted-foreground font-medium">Below Par</span>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 gap-2">
             <Card>
               <CardContent className="px-2 py-1.5 flex items-center justify-center gap-1.5">
                 <Truck className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -53,8 +46,9 @@ export default function DashboardPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
                   Below Par Alerts
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm font-bold tabular-nums text-red-600 dark:text-red-400" data-testid="text-below-par-count">{data.belowParItems.length}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
