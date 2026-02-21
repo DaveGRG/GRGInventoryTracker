@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ArrowRight, Search, Truck, Package, Trash2, CalendarIcon, X } from "lucide-react";
+import { Plus, Minus, ArrowRight, Search, Truck, Package, Trash2, CalendarIcon, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -28,7 +28,6 @@ export default function TransfersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [skuSearch, setSkuSearch] = useState("");
   const [skuSearchOpen, setSkuSearchOpen] = useState(false);
-  const [itemQty, setItemQty] = useState("1");
   const [transferItems, setTransferItems] = useState<{ sku: string; description: string; quantity: number }[]>([]);
   const [fromLoc, setFromLoc] = useState("");
   const [toLoc, setToLoc] = useState("");
@@ -149,7 +148,7 @@ export default function TransfersPage() {
     },
   });
 
-  const resetForm = () => { setSkuSearch(""); setItemQty("1"); setTransferItems([]); setFromLoc(""); setToLoc(""); setNotes(""); setTransferDate(new Date()); setSkuSearchOpen(false); };
+  const resetForm = () => { setSkuSearch(""); setTransferItems([]); setFromLoc(""); setToLoc(""); setNotes(""); setTransferDate(new Date()); setSkuSearchOpen(false); };
 
   const filteredItems = inventoryData?.filter((item) => {
     if (!skuSearch) return false;
@@ -161,16 +160,22 @@ export default function TransfersPage() {
   }).slice(0, 20);
 
   const addItem = (item: InventoryItem & { availableQty: number | null }) => {
-    const quantity = parseInt(itemQty) || 1;
     const existing = transferItems.find((t) => t.sku === item.sku);
     if (existing) {
-      setTransferItems(transferItems.map((t) => t.sku === item.sku ? { ...t, quantity: t.quantity + quantity } : t));
+      setTransferItems(transferItems.map((t) => t.sku === item.sku ? { ...t, quantity: t.quantity + 1 } : t));
     } else {
-      setTransferItems([...transferItems, { sku: item.sku, description: item.description, quantity }]);
+      setTransferItems([...transferItems, { sku: item.sku, description: item.description, quantity: 1 }]);
     }
     setSkuSearch("");
-    setItemQty("1");
     setSkuSearchOpen(false);
+  };
+
+  const updateItemQty = (sku: string, delta: number) => {
+    setTransferItems(transferItems.map((t) => {
+      if (t.sku !== sku) return t;
+      const newQty = Math.max(1, t.quantity + delta);
+      return { ...t, quantity: newQty };
+    }));
   };
 
   const removeItem = (sku: string) => {
@@ -324,48 +329,37 @@ export default function TransfersPage() {
               {!fromLoc ? (
                 <p className="text-xs text-muted-foreground mt-1">Select a "From" location first</p>
               ) : (
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      ref={skuInputRef}
-                      type="text"
-                      placeholder="Search SKU..."
-                      value={skuSearch}
-                      onChange={(e) => { setSkuSearch(e.target.value); setSkuSearchOpen(e.target.value.length > 0); }}
-                      onFocus={() => { if (skuSearch) setSkuSearchOpen(true); }}
-                      className="pl-9"
-                      data-testid="input-transfer-sku-search"
-                    />
-                    {skuSearchOpen && filteredItems && filteredItems.length > 0 && (
-                      <div ref={skuDropdownRef} className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
-                        {filteredItems.map((item) => (
-                          <button
-                            key={item.sku}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
-                            onClick={() => addItem(item)}
-                            data-testid={`sku-option-${item.sku}`}
-                          >
-                            <span className="font-mono text-xs flex-1">{item.sku}</span>
-                            {item.availableQty !== null && (
-                              <span className={cn("text-xs font-medium tabular-nums", item.availableQty > 0 ? "text-primary" : "text-destructive")}>
-                                {item.availableQty} avail
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    type="number"
-                    min="1"
-                    value={itemQty}
-                    onChange={(e) => setItemQty(e.target.value)}
-                    className="w-16 text-center"
-                    placeholder="Qty"
-                    data-testid="input-transfer-item-qty"
+                    ref={skuInputRef}
+                    type="text"
+                    placeholder="Search SKU..."
+                    value={skuSearch}
+                    onChange={(e) => { setSkuSearch(e.target.value); setSkuSearchOpen(e.target.value.length > 0); }}
+                    onFocus={() => { if (skuSearch) setSkuSearchOpen(true); }}
+                    className="pl-9"
+                    data-testid="input-transfer-sku-search"
                   />
+                  {skuSearchOpen && filteredItems && filteredItems.length > 0 && (
+                    <div ref={skuDropdownRef} className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                      {filteredItems.map((item) => (
+                        <button
+                          key={item.sku}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                          onClick={() => addItem(item)}
+                          data-testid={`sku-option-${item.sku}`}
+                        >
+                          <span className="font-mono text-xs flex-1">{item.sku}</span>
+                          {item.availableQty !== null && (
+                            <span className={cn("text-xs font-medium tabular-nums", item.availableQty > 0 ? "text-primary" : "text-destructive")}>
+                              {item.availableQty} avail
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -373,13 +367,27 @@ export default function TransfersPage() {
             {transferItems.length > 0 && (
               <div className="border rounded-md divide-y">
                 {transferItems.map((item) => (
-                  <div key={item.sku} className="flex items-center justify-between px-3 py-2" data-testid={`transfer-item-${item.sku}`}>
+                  <div key={item.sku} className="flex items-center gap-2 px-3 py-2" data-testid={`transfer-item-${item.sku}`}>
                     <div className="flex-1 min-w-0">
-                      <span className="font-mono text-xs">{item.sku}</span>
-                      <span className="text-muted-foreground text-xs ml-2">x{item.quantity}</span>
+                      <span className="font-mono text-sm">{item.sku}</span>
                     </div>
-                    <button onClick={() => removeItem(item.sku)} className="text-muted-foreground hover:text-destructive ml-2" data-testid={`remove-item-${item.sku}`}>
-                      <X className="h-3.5 w-3.5" />
+                    <button
+                      onClick={() => updateItemQty(item.sku, -1)}
+                      className="flex items-center justify-center h-10 w-10 rounded-md border bg-muted hover:bg-muted/80 active:scale-95 transition-transform touch-manipulation"
+                      data-testid={`qty-minus-${item.sku}`}
+                    >
+                      <Minus className="h-5 w-5" />
+                    </button>
+                    <span className="w-8 text-center font-bold text-lg tabular-nums" data-testid={`qty-value-${item.sku}`}>{item.quantity}</span>
+                    <button
+                      onClick={() => updateItemQty(item.sku, 1)}
+                      className="flex items-center justify-center h-10 w-10 rounded-md border bg-muted hover:bg-muted/80 active:scale-95 transition-transform touch-manipulation"
+                      data-testid={`qty-plus-${item.sku}`}
+                    >
+                      <Plus className="h-5 w-5" />
+                    </button>
+                    <button onClick={() => removeItem(item.sku)} className="text-muted-foreground hover:text-destructive ml-1" data-testid={`remove-item-${item.sku}`}>
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
