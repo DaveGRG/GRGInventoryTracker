@@ -191,14 +191,15 @@ export default function ManageSkusPage() {
           </Badge>
         )}
 
-        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-3 pb-0">
-          <div />
-          <span className="col-span-2 text-base font-semibold text-center" style={{ gridColumn: "2 / -1" }}>Set Par</span>
-        </div>
-        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-3 pb-0">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Item</span>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">Farm</span>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">MKE</span>
+        <div className="flex items-end px-3 pb-0">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex-1">Item</span>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-base font-semibold">Set Par</span>
+            <div className="flex gap-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">Farm</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">MKE</span>
+            </div>
+          </div>
         </div>
 
         {isLoading ? (
