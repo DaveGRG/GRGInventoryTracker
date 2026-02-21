@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMemo } from "react";
-import { ArrowLeft, Plus, User, MapPin, Calendar, Trash2, PackageCheck, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, User, MapPin, Calendar, Trash2, PackageCheck, AlertTriangle, Undo2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -89,6 +89,22 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       toast({ title: "Materials pulled", description: `${data.pulledCount} item${data.pulledCount !== 1 ? "s" : ""} pulled from inventory.` });
       setCheckedAllocations(new Set());
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const unpullBatchMutation = useMutation({
+    mutationFn: async (allocationIds: number[]) => {
+      const res = await apiRequest("POST", `/api/projects/${projectId}/allocations/unpull-batch`, { allocationIds });
+      return res.json();
+    },
+    onSuccess: (data: { unpulledCount: number }) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/allocations`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({ title: "Materials unpulled", description: `${data.unpulledCount} item${data.unpulledCount !== 1 ? "s" : ""} returned to inventory.` });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -312,7 +328,22 @@ export default function ProjectDetailPage() {
                             )}
                           </div>
                         </div>
-                        <StatusBadge status={alloc.status} type="allocation" />
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={alloc.status} type="allocation" />
+                          {alloc.status === "Pulled" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-1.5 text-xs"
+                              onClick={() => unpullBatchMutation.mutate([alloc.id])}
+                              disabled={unpullBatchMutation.isPending}
+                              data-testid={`button-unpull-${alloc.id}`}
+                            >
+                              <Undo2 className="h-3 w-3 mr-0.5" />
+                              Unpull
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

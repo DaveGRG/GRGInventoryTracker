@@ -701,6 +701,68 @@ export async function registerRoutes(
     res.json({ success: true, pulledCount: validAllocs.length });
   });
 
+  app.post("/api/projects/:id/allocations/unpull-batch", isAuthenticated, async (req: any, res) => {
+    const projectId = req.params.id;
+    const { allocationIds } = req.body;
+    if (!Array.isArray(allocationIds) || allocationIds.length === 0) {
+      return res.status(400).json({ message: "No allocations selected" });
+    }
+
+    const project = await storage.getProject(projectId);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const allAllocs = await storage.getAllocationsByProject(projectId);
+    const selectedAllocs = allAllocs.filter((a) => allocationIds.includes(a.id));
+
+    const errors: string[] = [];
+    const validAllocs: typeof selectedAllocs = [];
+    for (const alloc of selectedAllocs) {
+      if (alloc.status !== "Pulled") {
+        errors.push(`${alloc.sku}: not in Pulled status (${alloc.status})`);
+        continue;
+      }
+      if (!alloc.sourceLocation) {
+        errors.push(`${alloc.sku}: no source location to return stock to`);
+        continue;
+      }
+      validAllocs.push(alloc);
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({ message: "Some items cannot be unpulled", errors });
+    }
+
+    const userEmail = req.user?.claims?.email || "system";
+    const today = new Date().toISOString().split("T")[0];
+
+    await storage.runTransaction(async (tx) => {
+      for (const alloc of validAllocs) {
+        const sl = await tx.select().from(stockLevels).where(
+          and(eq(stockLevels.sku, alloc.sku), eq(stockLevels.locationId, alloc.sourceLocation!))
+        );
+        const oldQty = sl[0]?.quantity || 0;
+        const newQty = oldQty + alloc.quantity;
+
+        await upsertStockInTx(tx, alloc.sku, alloc.sourceLocation!, newQty, today, userEmail);
+
+        await tx.update(allocations).set({ status: "Planning" }).where(eq(allocations.id, alloc.id));
+
+        await tx.insert(auditLog).values({
+          userEmail,
+          actionType: "Stock Adjustment",
+          sku: alloc.sku,
+          locationId: alloc.sourceLocation!,
+          quantityBefore: oldQty,
+          quantityAfter: newQty,
+          reason: `Unpulled ${alloc.quantity} for product ${project.projectName}`,
+          notes: null,
+        });
+      }
+    });
+
+    res.json({ success: true, unpulledCount: validAllocs.length });
+  });
+
   app.get("/api/transfers", isAuthenticated, async (_req, res) => {
     const t = await storage.getTransfers();
     res.json(t);
