@@ -178,8 +178,9 @@
 
   #root > div {
     @apply max-w-2xl mx-auto bg-background;
-    border-left: 6px solid #5c4a1e;
-    border-right: 6px solid #5c4a1e;
+    border-left: 6px solid;
+    border-right: 6px solid;
+    border-image: linear-gradient(to top, rgba(92, 74, 30, 0.2), #5c4a1e) 1;
   }
 }
 
