@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { InventoryItem } from "@shared/schema";
@@ -29,6 +29,8 @@ export default function ManageSkusPage() {
   const [farmPar, setFarmPar] = useState("");
   const [mkePar, setMkePar] = useState("");
   const [notes, setNotes] = useState("");
+  const [editedLevels, setEditedLevels] = useState<Record<string, { farmParLevel: number; mkeParLevel: number }>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const { data: items, isLoading } = useQuery<InventoryItem[]>({
@@ -86,6 +88,75 @@ export default function ManageSkusPage() {
     });
   };
 
+  const getDisplayValue = (skuId: string, hub: "farm" | "mke"): string => {
+    const edited = editedLevels[skuId];
+    if (edited) {
+      return String(hub === "farm" ? edited.farmParLevel : edited.mkeParLevel);
+    }
+    const item = items?.find((i) => i.sku === skuId);
+    if (!item) return "0";
+    return String(hub === "farm" ? item.farmParLevel : item.mkeParLevel);
+  };
+
+  const handleParChange = (skuId: string, hub: "farm" | "mke", value: string) => {
+    const parsed = value === "" ? 0 : parseInt(value, 10);
+    if (isNaN(parsed) || parsed < 0) return;
+
+    const item = items?.find((i) => i.sku === skuId);
+    if (!item) return;
+
+    const current = editedLevels[skuId] || {
+      farmParLevel: item.farmParLevel,
+      mkeParLevel: item.mkeParLevel,
+    };
+
+    const updated = {
+      ...current,
+      [hub === "farm" ? "farmParLevel" : "mkeParLevel"]: parsed,
+    };
+
+    if (updated.farmParLevel === item.farmParLevel && updated.mkeParLevel === item.mkeParLevel) {
+      const next = { ...editedLevels };
+      delete next[skuId];
+      setEditedLevels(next);
+    } else {
+      setEditedLevels((prev) => ({ ...prev, [skuId]: updated }));
+    }
+  };
+
+  const changedCount = Object.keys(editedLevels).length;
+
+  const handleSaveParLevels = async () => {
+    if (changedCount === 0) return;
+    setIsSubmitting(true);
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const [skuId, levels] of Object.entries(editedLevels)) {
+      try {
+        await apiRequest("PATCH", `/api/inventory/${encodeURIComponent(skuId)}/par-levels`, levels);
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/inventory/items"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/reports/par-levels"] });
+
+    setIsSubmitting(false);
+    setEditedLevels({});
+
+    if (errorCount > 0) {
+      toast({ title: "Partial update", description: `${successCount} updated, ${errorCount} failed.`, variant: "destructive" });
+    } else {
+      toast({ title: "Par levels updated", description: `${successCount} item${successCount !== 1 ? "s" : ""} updated successfully.` });
+    }
+  };
+
   const filtered = items?.filter((item) => {
     const q = search.toLowerCase();
     return item.sku.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
@@ -114,6 +185,18 @@ export default function ManageSkusPage() {
           </Button>
         </div>
 
+        {changedCount > 0 && (
+          <Badge variant="default" className="no-default-hover-elevate text-xs tabular-nums" data-testid="text-changed-count">
+            {changedCount} changed
+          </Badge>
+        )}
+
+        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-3 pb-0">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Item</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">Farm</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">MKE</span>
+        </div>
+
         {isLoading ? (
           <div className="space-y-2">
             {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
@@ -123,25 +206,65 @@ export default function ManageSkusPage() {
             {search ? "No matching SKUs found" : "No SKUs yet"}
           </p>
         ) : (
-          <div className="space-y-2">
-            {filtered.map((item) => (
-              <Card key={item.sku} data-testid={`card-sku-${item.sku}`}>
-                <CardContent className="p-3 flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-mono font-medium truncate" data-testid={`text-sku-${item.sku}`}>{item.sku}</p>
-                    <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {item.species && (
-                      <Badge variant="outline" className="text-[10px] no-default-hover-elevate">{item.species}</Badge>
-                    )}
-                    <Badge variant={item.status === "Active" ? "default" : "secondary"} className="text-[10px] no-default-hover-elevate">
-                      {item.status}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="space-y-1">
+            {filtered.map((item) => {
+              const isEdited = !!editedLevels[item.sku];
+              return (
+                <Card
+                  key={item.sku}
+                  className={isEdited ? "border-primary/50 bg-primary/5" : ""}
+                  data-testid={`card-sku-${item.sku}`}
+                >
+                  <CardContent className="p-3">
+                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-mono font-medium truncate" data-testid={`text-sku-${item.sku}`}>{item.sku}</p>
+                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                      </div>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={getDisplayValue(item.sku, "farm")}
+                        onChange={(e) => handleParChange(item.sku, "farm", e.target.value)}
+                        className="w-16 text-center tabular-nums"
+                        data-testid={`input-farm-par-${item.sku}`}
+                      />
+                      <Input
+                        type="number"
+                        min="0"
+                        value={getDisplayValue(item.sku, "mke")}
+                        onChange={(e) => handleParChange(item.sku, "mke", e.target.value)}
+                        className="w-16 text-center tabular-nums"
+                        data-testid={`input-mke-par-${item.sku}`}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {changedCount > 0 && (
+          <div className="sticky bottom-4 z-30 pt-2">
+            <Button
+              className="w-full"
+              onClick={handleSaveParLevels}
+              disabled={isSubmitting}
+              data-testid="button-save-par-levels"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes ({changedCount} item{changedCount !== 1 ? "s" : ""})
+                </>
+              )}
+            </Button>
           </div>
         )}
       </div>
