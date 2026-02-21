@@ -266,13 +266,13 @@ export default function ManageSkusPage() {
                           <span className="text-sm font-semibold">{displayName}</span>
                         </div>
                         {isOpen && (
-                          <>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">Par</span>
+                          <div className="col-span-2 flex flex-col items-center">
+                            <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">Par</span>
+                            <div className="flex gap-2">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>
                               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>
                             </div>
-                          </>
+                          </div>
                         )}
                       </div>
                     </div>
