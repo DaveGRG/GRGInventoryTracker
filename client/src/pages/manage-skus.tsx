@@ -214,17 +214,6 @@ export default function ManageSkusPage() {
           </Badge>
         )}
 
-        <div className="flex items-end px-3 pb-0">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex-1">Item</span>
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="text-base font-semibold">Set Par</span>
-            <div className="flex gap-2">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">Farm</span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 text-center">MKE</span>
-            </div>
-          </div>
-        </div>
-
         {isLoading ? (
           <div className="space-y-2">
             {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
@@ -262,14 +251,13 @@ export default function ManageSkusPage() {
                 return (
                   <Collapsible key={group} open={isOpen} onOpenChange={() => toggleGroup(group)}>
                     <CollapsibleTrigger className="w-full" data-testid={`group-toggle-${displayName}`}>
-                      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-muted/30 rounded-md">
+                      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md sticky top-0 z-10">
                         <div className="flex items-center gap-2">
                           {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                           <span className="text-sm font-semibold">{displayName}</span>
                         </div>
-                        <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
-                          {groupItems.length} items
-                        </Badge>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>
                       </div>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
