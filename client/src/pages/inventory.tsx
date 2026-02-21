@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, ChevronDown, ChevronRight, Filter, X, Minus, Plus, Trash2 } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Minus, Plus, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -148,13 +148,6 @@ export default function InventoryPage() {
 
 
 
-  const clearFilters = () => {
-    setSpeciesFilter(null);
-    setStatusFilter(null);
-    setBelowParOnly(false);
-  };
-
-  const hasFilters = speciesFilter || statusFilter || belowParOnly;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -202,11 +195,7 @@ export default function InventoryPage() {
             >
               Discontinuing
             </Badge>
-            {hasFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-6 px-2 text-xs" data-testid="button-clear-filters">
-                <X className="h-3 w-3 mr-1" /> Clear
-              </Button>
-            )}
+
           </div>
         </div>
 
