@@ -157,9 +157,24 @@ export default function ManageSkusPage() {
     }
   };
 
+  const parseDimensions = (skuStr: string): [number, number, number] => {
+    const match = skuStr.match(/(\d+)x(\d+)x(\d+)/i);
+    if (match) {
+      return [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10)];
+    }
+    return [9999, 9999, 9999];
+  };
+
   const filtered = items?.filter((item) => {
     const q = search.toLowerCase();
     return item.sku.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
+  }).sort((a, b) => {
+    const [aThick, aWidth, aLen] = parseDimensions(a.sku);
+    const [bThick, bWidth, bLen] = parseDimensions(b.sku);
+    if (aThick !== bThick) return aThick - bThick;
+    if (aWidth !== bWidth) return aWidth - bWidth;
+    if (aLen !== bLen) return aLen - bLen;
+    return a.sku.localeCompare(b.sku);
   }) || [];
 
   return (
