@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { InventoryListSkeleton } from "@/components/loading-skeleton";
-import { StatusBadge, ParIndicator } from "@/components/status-badge";
+import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, ChevronDown, ChevronRight, Minus, Plus, Trash2 } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Minus, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -287,9 +287,11 @@ export default function InventoryPage() {
                                   <StatusBadge status={item.status} />
                                 </div>
                               </div>
-                              <div className="text-right flex-shrink-0">
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
                                 <p className="text-xl font-bold tabular-nums" data-testid={`text-qty-${item.sku}`}>{qty}</p>
-                                <ParIndicator current={qty} par={parLevel} />
+                                {parLevel > 0 && qty < parLevel && (
+                                  <AlertTriangle className="h-4 w-4 text-red-500" data-testid={`icon-below-par-${item.sku}`} />
+                                )}
                               </div>
                             </div>
                           </div>
@@ -312,9 +314,11 @@ export default function InventoryPage() {
                                 <StatusBadge status={item.status} />
                               </div>
                             </div>
-                            <div className="text-right flex-shrink-0">
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
                               <p className="text-xl font-bold tabular-nums text-muted-foreground" data-testid={`text-qty-${item.sku}`}>0</p>
-                              <ParIndicator current={0} par={parLevel} />
+                              {parLevel > 0 && (
+                                <AlertTriangle className="h-4 w-4 text-red-500" data-testid={`icon-below-par-${item.sku}`} />
+                              )}
                             </div>
                           </div>
                         </div>
