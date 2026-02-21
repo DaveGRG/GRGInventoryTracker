@@ -5,9 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Clock, Package, ScrollText, Users, FileText, ClipboardCheck, Bell } from "lucide-react";
 import { Link } from "wouter";
 import type { DashboardData } from "@/lib/types";
+
+const quickLinks = [
+  { href: "/more/manage-skus", label: "Manage SKUs", desc: "View, add SKUs & set par levels", icon: Package, testId: "link-manage-skus" },
+  { href: "/more/audit", label: "Audit Log", desc: "View all inventory changes", icon: ScrollText, testId: "link-audit-log" },
+  { href: "/more/users", label: "User Management", desc: "Manage app users and roles", icon: Users, testId: "link-users" },
+  { href: "/more/par-report", label: "Par Level Report", desc: "View reorder recommendations", icon: FileText, testId: "link-par-report" },
+  { href: "/physical-count", label: "Physical Count", desc: "Count and adjust inventory", icon: ClipboardCheck, testId: "link-physical-count" },
+  { href: "/more/notifications", label: "Notifications", desc: "Manage email alert recipients", icon: Bell, testId: "link-notifications" },
+];
 
 export default function DashboardPage() {
   const { data, isLoading } = useQuery<DashboardData>({
@@ -22,6 +31,27 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
+          <div className="space-y-2">
+            {quickLinks.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Card className="hover-elevate cursor-pointer" data-testid={item.testId}>
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+
           {data?.recentActivity && data.recentActivity.length > 0 && (
             <Card>
               <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
