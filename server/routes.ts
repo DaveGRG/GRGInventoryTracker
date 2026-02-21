@@ -416,7 +416,7 @@ export async function registerRoutes(
           projectId,
           sku: row.sku,
           quantity: row.quantity,
-          status: "Reserved",
+          status: "Planning",
           sourceLocation: effectiveLocation,
           allocatedBy: req.user?.claims?.sub || "system",
           allocatedDate: new Date().toISOString().split("T")[0],
@@ -452,7 +452,7 @@ export async function registerRoutes(
       sku,
       quantity,
       sourceLocation,
-      status: "Reserved",
+      status: "Planning",
       allocatedBy: req.user?.claims?.email || "system",
       allocatedDate: new Date().toISOString().split("T")[0],
       notes: null,
@@ -465,7 +465,7 @@ export async function registerRoutes(
       locationId: sourceLocation,
       quantityBefore: null,
       quantityAfter: null,
-      reason: `Reserved ${quantity} for project ${req.params.id}`,
+      reason: `Allocated ${quantity} for project ${req.params.id}`,
       notes: null,
     });
 
@@ -509,7 +509,7 @@ export async function registerRoutes(
         sku,
         quantity,
         sourceLocation: effectiveLocation,
-        status: "Reserved",
+        status: "Planning",
         allocatedBy: req.user?.claims?.email || "system",
         allocatedDate: new Date().toISOString().split("T")[0],
         notes: `Bulk CSV import - assigned to ${effectiveLocation}`,
@@ -522,7 +522,7 @@ export async function registerRoutes(
         locationId: effectiveLocation,
         quantityBefore: null,
         quantityAfter: null,
-        reason: `Reserved ${quantity} from ${effectiveLocation} for project ${req.params.id} (CSV import)`,
+        reason: `Allocated ${quantity} from ${effectiveLocation} for project ${req.params.id} (CSV import)`,
         notes: null,
       });
 
@@ -530,7 +530,7 @@ export async function registerRoutes(
         row: i + 1,
         sku,
         status: "success",
-        message: `Reserved ${quantity} from ${effectiveLocation}`,
+        message: `Allocated ${quantity} from ${effectiveLocation}`,
       });
     }
 
@@ -541,9 +541,9 @@ export async function registerRoutes(
 
   app.post("/api/projects/:id/generate-pick-list", isAuthenticated, async (req: any, res) => {
     const allocs = await storage.getAllocationsByProject(req.params.id);
-    const reserved = allocs.filter((a) => a.status === "Reserved" && a.sourceLocation);
+    const reserved = allocs.filter((a) => a.status === "Planning" && a.sourceLocation);
     if (reserved.length === 0) {
-      return res.status(400).json({ message: "No reserved allocations with assigned locations to generate pick list from" });
+      return res.status(400).json({ message: "No planning allocations with assigned locations to generate pick list from" });
     }
 
     const created: any[] = [];
@@ -599,7 +599,7 @@ export async function registerRoutes(
       }).where(eq(pickLists.id, pickId));
 
       const allocs = await tx.select().from(allocations).where(eq(allocations.projectId, pick.projectId));
-      const matchingAlloc = allocs.find((a) => a.sku === pick.sku && a.sourceLocation === pick.pickFromLocation && a.status === "Reserved");
+      const matchingAlloc = allocs.find((a) => a.sku === pick.sku && a.sourceLocation === pick.pickFromLocation && a.status === "Planning");
       if (matchingAlloc) {
         await tx.update(allocations).set({ status: "Pulled" }).where(eq(allocations.id, matchingAlloc.id));
       }
@@ -643,7 +643,7 @@ export async function registerRoutes(
     const errors: string[] = [];
     const validAllocs: typeof selectedAllocs = [];
     for (const alloc of selectedAllocs) {
-      if (alloc.status !== "Reserved" && alloc.status !== "Pending") {
+      if (alloc.status !== "Planning") {
         errors.push(`${alloc.sku}: cannot pull (status: ${alloc.status})`);
         continue;
       }
@@ -945,7 +945,7 @@ export async function registerRoutes(
     await storage.runTransaction(async (tx) => {
       const itemAllocations = await tx.select().from(allocations).where(eq(allocations.sku, sku));
       for (const alloc of itemAllocations) {
-        if (alloc.status === "Reserved" && alloc.sourceLocation) {
+        if (alloc.status === "Planning" && alloc.sourceLocation) {
           const sl = await tx.select().from(stockLevels).where(
             and(eq(stockLevels.sku, sku), eq(stockLevels.locationId, alloc.sourceLocation))
           );

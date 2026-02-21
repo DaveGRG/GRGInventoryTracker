@@ -32,7 +32,7 @@ const transferStatusMap: Record<string, StatusType> = {
 };
 
 const allocationStatusMap: Record<string, StatusType> = {
-  Reserved: "info",
+  Planning: "info",
   Pulled: "success",
   Cancelled: "danger",
 };

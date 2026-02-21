@@ -208,7 +208,7 @@ export default function ProjectDetailPage() {
   };
 
   const pullableAllocations = allocationsData?.filter((a) =>
-    (a.status === "Reserved" || a.status === "Pending") && a.sourceLocation && !hasInsufficientStock(a)
+    a.status === "Planning" && a.sourceLocation && !hasInsufficientStock(a)
   ) || [];
 
   const toggleAllocation = (id: number) => {
@@ -369,9 +369,9 @@ export default function ProjectDetailPage() {
           ) : (
             <div className="space-y-2">
               {allocationsData?.map((alloc) => {
-                const isReservedOrPending = (alloc.status === "Reserved" || alloc.status === "Pending") && !!alloc.sourceLocation;
-                const insufficientStock = isReservedOrPending && hasInsufficientStock(alloc);
-                const isPullable = isReservedOrPending && !insufficientStock;
+                const isPlanning = alloc.status === "Planning" && !!alloc.sourceLocation;
+                const insufficientStock = isPlanning && hasInsufficientStock(alloc);
+                const isPullable = isPlanning && !insufficientStock;
                 const isChecked = checkedAllocations.has(alloc.id);
                 const available = alloc.sourceLocation ? (stockMap[`${alloc.sku}::${alloc.sourceLocation}`] ?? 0) : 0;
                 return (
