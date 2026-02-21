@@ -51,6 +51,8 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, type = "item", className }: StatusBadgeProps) {
+  if (type === "item" && status === "Active") return null;
+
   const map = type === "project" ? projectStatusMap
     : type === "transfer" ? transferStatusMap
     : type === "allocation" ? allocationStatusMap
