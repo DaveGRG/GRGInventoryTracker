@@ -57,8 +57,8 @@ export default function TransfersPage() {
     queryKey: ["/api/transfers"],
   });
 
-  const { data: items } = useQuery<InventoryItem[]>({
-    queryKey: ["/api/inventory/items"],
+  const { data: inventoryData } = useQuery<(InventoryItem & { stockLevels: { locationId: string; quantity: number }[] })[]>({
+    queryKey: ["/api/inventory"],
   });
 
   const { data: locationsList } = useQuery<LocationType[]>({
@@ -151,13 +151,16 @@ export default function TransfersPage() {
 
   const resetForm = () => { setSkuSearch(""); setItemQty("1"); setTransferItems([]); setFromLoc(""); setToLoc(""); setNotes(""); setTransferDate(new Date()); setSkuSearchOpen(false); };
 
-  const filteredItems = items?.filter((item) => {
-    if (!skuSearch) return true;
+  const filteredItems = inventoryData?.filter((item) => {
+    if (!skuSearch) return false;
     const q = skuSearch.toLowerCase();
     return item.sku.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
+  }).map((item) => {
+    const stockAtSource = fromLoc ? (item.stockLevels.find((sl) => sl.locationId === fromLoc)?.quantity || 0) : null;
+    return { ...item, availableQty: stockAtSource };
   }).slice(0, 20);
 
-  const addItem = (item: InventoryItem) => {
+  const addItem = (item: InventoryItem & { availableQty: number | null }) => {
     const quantity = parseInt(itemQty) || 1;
     const existing = transferItems.find((t) => t.sku === item.sku);
     if (existing) {
@@ -287,72 +290,10 @@ export default function TransfersPage() {
             <DialogTitle>New Transfer</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Add Items</Label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    ref={skuInputRef}
-                    type="text"
-                    placeholder="Search SKU..."
-                    value={skuSearch}
-                    onChange={(e) => { setSkuSearch(e.target.value); setSkuSearchOpen(e.target.value.length > 0); }}
-                    onFocus={() => { if (skuSearch) setSkuSearchOpen(true); }}
-                    className="pl-9"
-                    data-testid="input-transfer-sku-search"
-                  />
-                  {skuSearchOpen && filteredItems && filteredItems.length > 0 && (
-                    <div ref={skuDropdownRef} className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
-                      {filteredItems.map((item) => (
-                        <button
-                          key={item.sku}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex justify-between items-center"
-                          onClick={() => addItem(item)}
-                          data-testid={`sku-option-${item.sku}`}
-                        >
-                          <span className="font-mono text-xs">{item.sku}</span>
-                          <span className="text-muted-foreground text-xs ml-2 truncate">{item.description}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <Input
-                  type="number"
-                  min="1"
-                  value={itemQty}
-                  onChange={(e) => setItemQty(e.target.value)}
-                  className="w-16 text-center"
-                  placeholder="Qty"
-                  data-testid="input-transfer-item-qty"
-                />
-              </div>
-            </div>
-
-            {transferItems.length > 0 && (
-              <div className="border rounded-md divide-y">
-                {transferItems.map((item) => (
-                  <div key={item.sku} className="flex items-center justify-between px-3 py-2" data-testid={`transfer-item-${item.sku}`}>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-mono text-xs">{item.sku}</span>
-                      <span className="text-muted-foreground text-xs ml-2">x{item.quantity}</span>
-                    </div>
-                    <button onClick={() => removeItem(item.sku)} className="text-muted-foreground hover:text-destructive ml-2" data-testid={`remove-item-${item.sku}`}>
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-                <div className="px-3 py-1.5 bg-muted/50 text-xs text-muted-foreground">
-                  {transferItems.length} item{transferItems.length !== 1 ? "s" : ""}
-                </div>
-              </div>
-            )}
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>From</Label>
-                <Select value={fromLoc} onValueChange={setFromLoc}>
+                <Select value={fromLoc} onValueChange={(v) => { setFromLoc(v); setTransferItems([]); }}>
                   <SelectTrigger data-testid="select-transfer-from">
                     <SelectValue placeholder="Source" />
                   </SelectTrigger>
@@ -377,6 +318,77 @@ export default function TransfersPage() {
                 </Select>
               </div>
             </div>
+
+            <div>
+              <Label>Add Items</Label>
+              {!fromLoc ? (
+                <p className="text-xs text-muted-foreground mt-1">Select a "From" location first</p>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      ref={skuInputRef}
+                      type="text"
+                      placeholder="Search SKU..."
+                      value={skuSearch}
+                      onChange={(e) => { setSkuSearch(e.target.value); setSkuSearchOpen(e.target.value.length > 0); }}
+                      onFocus={() => { if (skuSearch) setSkuSearchOpen(true); }}
+                      className="pl-9"
+                      data-testid="input-transfer-sku-search"
+                    />
+                    {skuSearchOpen && filteredItems && filteredItems.length > 0 && (
+                      <div ref={skuDropdownRef} className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                        {filteredItems.map((item) => (
+                          <button
+                            key={item.sku}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                            onClick={() => addItem(item)}
+                            data-testid={`sku-option-${item.sku}`}
+                          >
+                            <span className="font-mono text-xs flex-1">{item.sku}</span>
+                            {item.availableQty !== null && (
+                              <span className={cn("text-xs font-medium tabular-nums", item.availableQty > 0 ? "text-primary" : "text-destructive")}>
+                                {item.availableQty} avail
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={itemQty}
+                    onChange={(e) => setItemQty(e.target.value)}
+                    className="w-16 text-center"
+                    placeholder="Qty"
+                    data-testid="input-transfer-item-qty"
+                  />
+                </div>
+              )}
+            </div>
+
+            {transferItems.length > 0 && (
+              <div className="border rounded-md divide-y">
+                {transferItems.map((item) => (
+                  <div key={item.sku} className="flex items-center justify-between px-3 py-2" data-testid={`transfer-item-${item.sku}`}>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-mono text-xs">{item.sku}</span>
+                      <span className="text-muted-foreground text-xs ml-2">x{item.quantity}</span>
+                    </div>
+                    <button onClick={() => removeItem(item.sku)} className="text-muted-foreground hover:text-destructive ml-2" data-testid={`remove-item-${item.sku}`}>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <div className="px-3 py-1.5 bg-muted/50 text-xs text-muted-foreground">
+                  {transferItems.length} item{transferItems.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+            )}
+
             <div>
               <Label>Date</Label>
               <Popover>
