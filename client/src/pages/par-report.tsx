@@ -48,7 +48,6 @@ export default function ParReportPage() {
                           <div key={item.sku} className="flex items-center justify-between py-2 border-b last:border-0" data-testid={`par-alert-farm-${item.sku}`}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-mono font-medium">{item.sku}</p>
-                              <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                             </div>
                             <div className="text-right flex-shrink-0 ml-2">
                               <p className="text-sm tabular-nums">
@@ -78,7 +77,6 @@ export default function ParReportPage() {
                           <div key={item.sku} className="flex items-center justify-between py-2 border-b last:border-0" data-testid={`par-alert-mke-${item.sku}`}>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-mono font-medium">{item.sku}</p>
-                              <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                             </div>
                             <div className="text-right flex-shrink-0 ml-2">
                               <p className="text-sm tabular-nums">
