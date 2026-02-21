@@ -97,6 +97,27 @@ export default function PhysicalCountPage() {
     BL: "Black Locust",
   };
 
+  const parseDim = (val: string | null | undefined): number => {
+    if (!val) return 0;
+    const m = val.match(/[\d/.]+/);
+    if (!m) return 0;
+    if (m[0].includes("/")) {
+      const parts = m[0].split("/");
+      return parseFloat(parts[0]) / parseFloat(parts[1]);
+    }
+    return parseFloat(m[0]);
+  };
+
+  const sortByDimension = (a: { thickness?: string | null; width?: string | null; length?: string | null; sku: string }, b: { thickness?: string | null; width?: string | null; length?: string | null; sku: string }) => {
+    const at = parseDim(a.thickness), bt = parseDim(b.thickness);
+    if (at !== bt) return at - bt;
+    const aw = parseDim(a.width), bw = parseDim(b.width);
+    if (aw !== bw) return aw - bw;
+    const al = parseDim(a.length), bl = parseDim(b.length);
+    if (al !== bl) return al - bl;
+    return a.sku.localeCompare(b.sku);
+  };
+
   const groupedItems = useMemo(() => {
     const groups: Record<string, typeof filteredItems> = {};
     for (const item of filteredItems) {
@@ -104,7 +125,9 @@ export default function PhysicalCountPage() {
       if (!groups[prefix]) groups[prefix] = [];
       groups[prefix].push(item);
     }
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, items]) => [key, [...items].sort(sortByDimension)] as [string, typeof filteredItems]);
   }, [filteredItems]);
 
   const toggleCategory = (prefix: string) => {
