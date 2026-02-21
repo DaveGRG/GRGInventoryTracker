@@ -5,17 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { ArrowRight, Clock, Package, ScrollText, Users, FileText, ClipboardCheck, Bell } from "lucide-react";
+import { ArrowRight, Clock, Package, ScrollText, FileText, ClipboardCheck } from "lucide-react";
 import { Link } from "wouter";
 import type { DashboardData } from "@/lib/types";
 
 const quickLinks = [
   { href: "/more/manage-skus", label: "Manage SKUs", desc: "View, add SKUs & set par levels", icon: Package, testId: "link-manage-skus" },
   { href: "/more/audit", label: "Audit Log", desc: "View all inventory changes", icon: ScrollText, testId: "link-audit-log" },
-  { href: "/more/users", label: "User Management", desc: "Manage app users and roles", icon: Users, testId: "link-users" },
   { href: "/more/par-report", label: "Par Level Report", desc: "View reorder recommendations", icon: FileText, testId: "link-par-report" },
   { href: "/physical-count", label: "Physical Count", desc: "Count and adjust inventory", icon: ClipboardCheck, testId: "link-physical-count" },
-  { href: "/more/notifications", label: "Notifications", desc: "Manage email alert recipients", icon: Bell, testId: "link-notifications" },
 ];
 
 export default function DashboardPage() {
