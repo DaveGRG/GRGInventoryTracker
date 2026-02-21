@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Save, Loader2, ChevronDown, ChevronRight } from "lucide-react";
@@ -252,20 +251,23 @@ export default function ManageSkusPage() {
                 const isOpen = expandedGroups.has(group) || isSearching;
 
                 return (
-                  <Collapsible key={group} open={isOpen} onOpenChange={() => toggleGroup(group)}>
-                    <div className="sticky top-0 z-10">
-                      <CollapsibleTrigger className="w-full" data-testid={`group-toggle-${displayName}`}>
-                        <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md">
-                          <div className="flex items-center gap-2">
-                            {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                            <span className="text-sm font-semibold">{displayName}</span>
-                          </div>
-                          {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>}
-                          {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>}
+                  <div key={group}>
+                    <button
+                      type="button"
+                      className="w-full sticky top-0 z-10"
+                      onClick={() => toggleGroup(group)}
+                      data-testid={`group-toggle-${displayName}`}
+                    >
+                      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2 px-4 py-3 border-b bg-muted rounded-md">
+                        <div className="flex items-center gap-2">
+                          {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                          <span className="text-sm font-semibold">{displayName}</span>
                         </div>
-                      </CollapsibleTrigger>
-                    </div>
-                    <CollapsibleContent>
+                        {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">Farm</span>}
+                        {isOpen && <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center">MKE</span>}
+                      </div>
+                    </button>
+                    {isOpen && (
                       <div className="space-y-1 py-1">
                         {groupItems.map((item) => {
                           const isEdited = !!editedLevels[item.sku];
@@ -303,8 +305,8 @@ export default function ManageSkusPage() {
                           );
                         })}
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                    )}
+                  </div>
                 );
               });
             })()}
