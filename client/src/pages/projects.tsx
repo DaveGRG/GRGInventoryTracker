@@ -128,18 +128,18 @@ export default function ProjectsPage() {
     const headers = parseCsvLine(headerLine, sep).map((h) => h.toLowerCase().replace(/['"]/g, ""));
 
     const catalogIdx = headers.findIndex((h) => h.includes("catalog") && h.includes("id"));
-    const nameIdx = headers.findIndex((h) => h.includes("product") && h.includes("name"));
+    const nameIdx = headers.findIndex((h) =>
+      (h.includes("product") && h.includes("name")) || h === "name" || h === "product"
+    );
     const skuIdx = headers.findIndex((h) => h === "sku" || h === "item" || h === "material");
     const qtyIdx = headers.findIndex((h) => h === "qty" || h === "quantity" || h === "amount");
 
     const missing: string[] = [];
-    if (catalogIdx === -1) missing.push("Catalog ID");
-    if (nameIdx === -1) missing.push("Product name");
     if (skuIdx === -1) missing.push("SKU");
     if (qtyIdx === -1) missing.push("QTY");
 
     if (missing.length > 0) {
-      setCsvErrors([`Missing required columns: ${missing.join(", ")}. Expected: Catalog ID, Product name, SKU, QTY`]);
+      setCsvErrors([`Missing required columns: ${missing.join(", ")}. CSV must have SKU and QTY columns.`]);
       return;
     }
 
@@ -164,8 +164,8 @@ export default function ProjectsPage() {
       }
 
       rows.push({
-        catalogId: cols[catalogIdx]?.trim() || "",
-        productName: cols[nameIdx]?.trim() || "",
+        catalogId: catalogIdx >= 0 ? (cols[catalogIdx]?.trim() || "") : "",
+        productName: nameIdx >= 0 ? (cols[nameIdx]?.trim() || "") : "",
         sku,
         qty,
         valid: skuValid,
