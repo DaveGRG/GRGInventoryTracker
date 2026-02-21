@@ -72,6 +72,8 @@ export default function ProjectsPage() {
 
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: inventoryItems } = useQuery<InventoryItem[]>({
