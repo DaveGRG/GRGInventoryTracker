@@ -2,11 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { AlertTriangle, Truck, ClipboardList, ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 import { Link } from "wouter";
 import type { DashboardData } from "@/lib/types";
 
@@ -23,62 +22,6 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <div className="p-4 space-y-4 max-w-2xl mx-auto">
-          <div className="grid grid-cols-2 gap-2">
-            <Card>
-              <CardContent className="px-2 py-1.5 flex items-center justify-center gap-1.5">
-                <Truck className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm font-bold tabular-nums" data-testid="text-active-transfers">{data?.activeTransfers || 0}</span>
-                <span className="text-[10px] text-muted-foreground font-medium">Transfers</span>
-              </CardContent>
-            </Card>
-            <Link href="/clients">
-              <Card className="hover-elevate cursor-pointer">
-                <CardContent className="px-2 py-1.5 flex items-center justify-center gap-1.5">
-                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm font-bold tabular-nums" data-testid="text-active-clients">{data?.activeClients || 0}</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">Projects</span>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-
-          {data?.belowParItems && data.belowParItems.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  Below Par Alerts
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                  <span className="text-sm font-bold tabular-nums text-red-600 dark:text-red-400" data-testid="text-below-par-count">{data.belowParItems.length}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="max-h-[400px] overflow-y-auto scroll-smooth space-y-2">
-                  {data.belowParItems.map((item) => (
-                    <div
-                      key={`${item.sku}-${item.hub}`}
-                      className="flex items-center justify-between gap-2 py-2 border-b last:border-0"
-                      data-testid={`card-par-alert-${item.sku}`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-mono font-medium truncate">{item.sku}</p>
-                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm tabular-nums">
-                          <span className="text-red-600 dark:text-red-400 font-semibold">{item.currentTotal}</span>
-                          <span className="text-muted-foreground"> / {item.parLevel}</span>
-                        </p>
-                        <Badge variant="outline" className="text-[10px] no-default-hover-elevate">
-                          {item.hub}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {data?.recentActivity && data.recentActivity.length > 0 && (
             <Card>
               <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
