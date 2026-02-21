@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { AlertTriangle, Truck, ClipboardList, ArrowRight, Clock, Users } from "lucide-react";
+import { AlertTriangle, Truck, ClipboardList, ArrowRight, Clock } from "lucide-react";
 import { Link } from "wouter";
 import type { DashboardData } from "@/lib/types";
 
@@ -47,8 +47,8 @@ export default function DashboardPage() {
               <Card className="hover-elevate cursor-pointer">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground font-medium">Active Clients</span>
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground font-medium">Active Products</span>
                   </div>
                   <p className="text-2xl font-bold tabular-nums" data-testid="text-active-clients">{data?.activeClients || 0}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{data?.totalClients || 0} total</p>
@@ -68,12 +68,6 @@ export default function DashboardPage() {
               <Link href="/projects/new">
                 <ClipboardList className="h-4 w-4 mr-1.5" />
                 New Product
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild data-testid="button-view-clients">
-              <Link href="/clients">
-                <Users className="h-4 w-4 mr-1.5" />
-                View Clients
               </Link>
             </Button>
           </div>
