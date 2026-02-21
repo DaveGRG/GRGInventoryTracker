@@ -669,7 +669,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/transfers", isAuthenticated, validate(createTransferSchema), async (req: any, res) => {
-    const { sku, quantity, fromLocation, toLocation, notes } = req.body;
+    const { sku, quantity, fromLocation, toLocation, notes, requestDate } = req.body;
 
     const stockLevel = await storage.getStockLevel(sku, fromLocation);
     if (!stockLevel || stockLevel.quantity < quantity) {
@@ -683,7 +683,7 @@ export async function registerRoutes(
       toLocation,
       status: "Requested",
       requestedBy: req.user?.claims?.email || "system",
-      requestDate: new Date().toISOString().split("T")[0],
+      requestDate: requestDate || new Date().toISOString().split("T")[0],
       shippedDate: null,
       receivedBy: null,
       receivedDate: null,

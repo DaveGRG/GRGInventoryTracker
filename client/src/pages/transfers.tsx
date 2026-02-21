@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { StatusBadge } from "@/components/status-badge";
@@ -11,9 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ArrowRight, Search, Truck, Package, Trash2 } from "lucide-react";
+import { Plus, ArrowRight, Search, Truck, Package, Trash2, CalendarIcon } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Transfer, InventoryItem, Location as LocationType } from "@shared/schema";
@@ -27,6 +31,7 @@ export default function TransfersPage() {
   const [fromLoc, setFromLoc] = useState("");
   const [toLoc, setToLoc] = useState("");
   const [notes, setNotes] = useState("");
+  const [transferDate, setTransferDate] = useState<Date>(new Date());
   const [shipDialog, setShipDialog] = useState<Transfer | null>(null);
   const [receiveDialog, setReceiveDialog] = useState<Transfer | null>(null);
   const [receivedQty, setReceivedQty] = useState("");
@@ -129,7 +134,7 @@ export default function TransfersPage() {
     },
   });
 
-  const resetForm = () => { setSku(""); setQty(""); setFromLoc(""); setToLoc(""); setNotes(""); };
+  const resetForm = () => { setSku(""); setQty(""); setFromLoc(""); setToLoc(""); setNotes(""); setTransferDate(new Date()); };
 
   const filtered = transfersList?.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
@@ -288,6 +293,20 @@ export default function TransfersPage() {
               </Select>
             </div>
             <div>
+              <Label>Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !transferDate && "text-muted-foreground")} data-testid="button-transfer-date">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {transferDate ? format(transferDate, "MMM d, yyyy") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={transferDate} onSelect={(d) => d && setTransferDate(d)} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
               <Label>Notes (optional)</Label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} data-testid="input-transfer-notes" />
             </div>
@@ -295,7 +314,7 @@ export default function TransfersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button
-              onClick={() => createMutation.mutate({ sku, quantity: parseInt(qty), fromLocation: fromLoc, toLocation: toLoc, notes: notes || undefined })}
+              onClick={() => createMutation.mutate({ sku, quantity: parseInt(qty), fromLocation: fromLoc, toLocation: toLoc, requestDate: format(transferDate, "yyyy-MM-dd"), notes: notes || undefined })}
               disabled={!sku || !qty || !fromLoc || !toLoc || createMutation.isPending}
               data-testid="button-save-transfer"
             >
