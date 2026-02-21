@@ -11,9 +11,9 @@ import type { DashboardData } from "@/lib/types";
 
 const quickLinks = [
   { href: "/more/manage-skus", label: "Manage SKUs", desc: "View, add SKUs & set par levels", icon: Package, testId: "link-manage-skus" },
-  { href: "/more/audit", label: "Audit Log", desc: "View all inventory changes", icon: ScrollText, testId: "link-audit-log" },
   { href: "/more/par-report", label: "Par Report", desc: "View reorder recommendations", icon: FileText, testId: "link-par-report" },
   { href: "/physical-count", label: "Physical Count", desc: "Count and adjust inventory", icon: ClipboardCheck, testId: "link-physical-count" },
+  { href: "/more/audit", label: "Audit Log", desc: "View all inventory changes", icon: ScrollText, testId: "link-audit-log" },
 ];
 
 export default function DashboardPage() {
