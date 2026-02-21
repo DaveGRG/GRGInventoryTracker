@@ -167,36 +167,6 @@ export default function InventoryPage() {
             />
           </div>
 
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <Badge
-              variant={belowParOnly ? "default" : "outline"}
-              className={`cursor-pointer text-xs ${belowParOnly ? "" : ""}`}
-              onClick={() => setBelowParOnly(!belowParOnly)}
-              data-testid="filter-below-par"
-            >
-              Below Par
-            </Badge>
-            {species.map((sp) => (
-              <Badge
-                key={sp}
-                variant={speciesFilter === sp ? "default" : "outline"}
-                className="cursor-pointer text-xs"
-                onClick={() => setSpeciesFilter(speciesFilter === sp ? null : sp!)}
-                data-testid={`filter-species-${sp}`}
-              >
-                {sp === "Cedar" ? "CDR" : sp === "Cedar Tone" ? "CT" : sp}
-              </Badge>
-            ))}
-            <Badge
-              variant={statusFilter === "Discontinuing" ? "default" : "outline"}
-              className="cursor-pointer text-xs"
-              onClick={() => setStatusFilter(statusFilter === "Discontinuing" ? null : "Discontinuing")}
-              data-testid="filter-discontinuing"
-            >
-              Discontinuing
-            </Badge>
-
-          </div>
         </div>
 
         <div className="max-w-2xl mx-auto">
@@ -206,6 +176,36 @@ export default function InventoryPage() {
               <TabsTrigger value="MKE" data-testid="tab-mke" className="flex-1 data-[state=active]:bg-[#5c4a1e] data-[state=active]:text-white">MKE</TabsTrigger>
             </TabsList>
           </Tabs>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 flex-wrap px-3 py-2 max-w-2xl mx-auto">
+          <Badge
+            variant={belowParOnly ? "default" : "outline"}
+            className={`cursor-pointer text-xs ${belowParOnly ? "" : ""}`}
+            onClick={() => setBelowParOnly(!belowParOnly)}
+            data-testid="filter-below-par"
+          >
+            Below Par
+          </Badge>
+          {species.map((sp) => (
+            <Badge
+              key={sp}
+              variant={speciesFilter === sp ? "default" : "outline"}
+              className="cursor-pointer text-xs"
+              onClick={() => setSpeciesFilter(speciesFilter === sp ? null : sp!)}
+              data-testid={`filter-species-${sp}`}
+            >
+              {sp === "Cedar" ? "CDR" : sp === "Cedar Tone" ? "CT" : sp}
+            </Badge>
+          ))}
+          <Badge
+            variant={statusFilter === "Discontinuing" ? "default" : "outline"}
+            className="cursor-pointer text-xs"
+            onClick={() => setStatusFilter(statusFilter === "Discontinuing" ? null : "Discontinuing")}
+            data-testid="filter-discontinuing"
+          >
+            Discontinuing
+          </Badge>
         </div>
       </div>
 
