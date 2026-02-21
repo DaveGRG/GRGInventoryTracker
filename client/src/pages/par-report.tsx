@@ -40,11 +40,21 @@ export default function ParReportPage() {
     queryKey: ["/api/vendors"],
   });
 
+  const parseDimensions = (sku: string): [number, number, number] => {
+    const match = sku.match(/(\d+)x(\d+)x(\d+)/i);
+    if (match) return [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10)];
+    return [9999, 9999, 9999];
+  };
   const sortAlerts = (list: ParLevelAlert[]) =>
     [...list].sort((a, b) => {
       const aBS = a.sku.includes(" BS ") ? 1 : 0;
       const bBS = b.sku.includes(" BS ") ? 1 : 0;
       if (aBS !== bBS) return aBS - bBS;
+      const [aT, aW, aL] = parseDimensions(a.sku);
+      const [bT, bW, bL] = parseDimensions(b.sku);
+      if (aT !== bT) return aT - bT;
+      if (aW !== bW) return aW - bW;
+      if (aL !== bL) return aL - bL;
       return a.sku.localeCompare(b.sku);
     });
   const farmAlerts = sortAlerts(alerts?.filter((a) => a.hub === "Farm") || []);
