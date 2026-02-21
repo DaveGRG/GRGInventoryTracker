@@ -329,7 +329,7 @@ export default function ProjectDetailPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <StatusBadge status={alloc.status} type="allocation" />
+                          {alloc.status === "Pulled" && <StatusBadge status={alloc.status} type="allocation" />}
                           {alloc.status === "Pulled" && (
                             <Button
                               size="sm"
