@@ -1,6 +1,6 @@
 import {
   inventoryItems, locations, stockLevels, projects, allocations,
-  transfers, pickLists, auditLog, appUsers,
+  transfers, pickLists, auditLog, appUsers, notificationRecipients,
   type InventoryItem, type InsertInventoryItem,
   type Location, type InsertLocation,
   type StockLevel, type InsertStockLevel,
@@ -10,6 +10,7 @@ import {
   type PickList, type InsertPickList,
   type AuditLogEntry, type InsertAuditLogEntry,
   type AppUser, type InsertAppUser,
+  type NotificationRecipient, type InsertNotificationRecipient,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -71,6 +72,12 @@ export interface IStorage {
   getAppUserByEmail(email: string): Promise<AppUser | undefined>;
   createAppUser(user: InsertAppUser): Promise<AppUser>;
   updateAppUser(id: number, data: Partial<InsertAppUser>): Promise<AppUser | undefined>;
+
+  getNotificationRecipients(): Promise<NotificationRecipient[]>;
+  getActiveNotificationRecipients(): Promise<NotificationRecipient[]>;
+  createNotificationRecipient(r: InsertNotificationRecipient): Promise<NotificationRecipient>;
+  updateNotificationRecipient(id: number, data: Partial<InsertNotificationRecipient>): Promise<NotificationRecipient | undefined>;
+  deleteNotificationRecipient(id: number): Promise<void>;
 
   runTransaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T>;
 }
@@ -290,6 +297,28 @@ export class DatabaseStorage implements IStorage {
   async updateAppUser(id: number, data: Partial<InsertAppUser>): Promise<AppUser | undefined> {
     const [updated] = await db.update(appUsers).set(data).where(eq(appUsers.id, id)).returning();
     return updated || undefined;
+  }
+
+  async getNotificationRecipients(): Promise<NotificationRecipient[]> {
+    return db.select().from(notificationRecipients).orderBy(notificationRecipients.name);
+  }
+
+  async getActiveNotificationRecipients(): Promise<NotificationRecipient[]> {
+    return db.select().from(notificationRecipients).where(eq(notificationRecipients.active, true));
+  }
+
+  async createNotificationRecipient(r: InsertNotificationRecipient): Promise<NotificationRecipient> {
+    const [created] = await db.insert(notificationRecipients).values(r).returning();
+    return created;
+  }
+
+  async updateNotificationRecipient(id: number, data: Partial<InsertNotificationRecipient>): Promise<NotificationRecipient | undefined> {
+    const [updated] = await db.update(notificationRecipients).set(data).where(eq(notificationRecipients.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteNotificationRecipient(id: number): Promise<void> {
+    await db.delete(notificationRecipients).where(eq(notificationRecipients.id, id));
   }
 
   async runTransaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {

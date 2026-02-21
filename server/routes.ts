@@ -4,9 +4,10 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertInventoryItemSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists } from "@shared/schema";
+import { insertInventoryItemSchema, insertNotificationRecipientSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { sendTransferNotification } from "./email";
 
 const stockAdjustSchema = z.object({
   sku: z.string().min(1),
@@ -763,6 +764,14 @@ export async function registerRoutes(
       }
     });
 
+    const activeRecipients = await storage.getActiveNotificationRecipients();
+    if (activeRecipients.length > 0) {
+      sendTransferNotification(
+        activeRecipients.map((r) => r.email),
+        { items, fromLocation, toLocation, requestDate: date, requestedBy: userEmail, notes }
+      ).catch((err) => console.error("Email notification error:", err));
+    }
+
     res.json(created);
   });
 
@@ -1111,6 +1120,30 @@ export async function registerRoutes(
 
     const { passwordHash, ...safe } = user;
     res.json(safe);
+  });
+
+  app.get("/api/notifications/recipients", isAuthenticated, async (_req, res) => {
+    const recipients = await storage.getNotificationRecipients();
+    res.json(recipients);
+  });
+
+  app.post("/api/notifications/recipients", isAuthenticated, validate(insertNotificationRecipientSchema), async (req: any, res) => {
+    const recipient = await storage.createNotificationRecipient(req.body);
+    res.json(recipient);
+  });
+
+  const patchRecipientSchema = insertNotificationRecipientSchema.partial();
+  app.patch("/api/notifications/recipients/:id", isAuthenticated, validate(patchRecipientSchema), async (req: any, res) => {
+    const id = parseInt(req.params.id);
+    const updated = await storage.updateNotificationRecipient(id, req.body);
+    if (!updated) return res.status(404).json({ message: "Recipient not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/notifications/recipients/:id", isAuthenticated, async (req: any, res) => {
+    const id = parseInt(req.params.id);
+    await storage.deleteNotificationRecipient(id);
+    res.json({ success: true });
   });
 
   return httpServer;

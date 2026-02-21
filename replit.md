@@ -4,6 +4,14 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-21: Email notifications for transfers
+  - Nodemailer integration with Gmail App Password authentication
+  - Notification recipients management page at /more/notifications (add, toggle active, delete)
+  - notification_recipients table in database with name, email, active fields
+  - Automatic email sent to active recipients when batch transfer is created
+  - HTML-formatted email with transfer details, items table, requestor info
+  - Graceful fallback when Gmail credentials not configured (no crash)
+  - API: GET/POST/PATCH/DELETE /api/notifications/recipients
 - 2026-02-16: Replaced pick list workflow with inline checkbox pull system
   - Each material allocation line item on product detail page now has a checkbox
   - "Select all" checkbox and "Submit Pulled" button for batch stock deduction

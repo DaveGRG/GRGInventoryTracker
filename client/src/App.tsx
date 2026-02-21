@@ -18,6 +18,7 @@ import PhysicalCountPage from "@/pages/physical-count";
 import ParLevelsPage from "@/pages/par-levels";
 import ClientsPage from "@/pages/clients";
 import ManageSkusPage from "@/pages/manage-skus";
+import NotificationsPage from "@/pages/notifications";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRoutes() {
@@ -36,6 +37,7 @@ function AuthenticatedRoutes() {
       <Route path="/physical-count" component={PhysicalCountPage} />
       <Route path="/more/par-levels" component={ParLevelsPage} />
       <Route path="/more/manage-skus" component={ManageSkusPage} />
+      <Route path="/more/notifications" component={NotificationsPage} />
       <Route path="/clients" component={ClientsPage} />
       <Route component={NotFound} />
     </Switch>

@@ -142,6 +142,14 @@ export const appUsers = pgTable("app_users", {
   active: boolean("active").notNull().default(true),
 });
 
+export const notificationRecipients = pgTable("notification_recipients", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  name: text("name").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const inventoryItemsRelations = relations(inventoryItems, ({ many }) => ({
   stockLevels: many(stockLevels),
   allocations: many(allocations),
@@ -212,3 +220,7 @@ export type AuditLogEntry = typeof auditLog.$inferSelect;
 export type InsertAuditLogEntry = z.infer<typeof insertAuditLogSchema>;
 export type AppUser = typeof appUsers.$inferSelect;
 export type InsertAppUser = z.infer<typeof insertAppUserSchema>;
+
+export const insertNotificationRecipientSchema = createInsertSchema(notificationRecipients).omit({ id: true, createdAt: true });
+export type NotificationRecipient = typeof notificationRecipients.$inferSelect;
+export type InsertNotificationRecipient = z.infer<typeof insertNotificationRecipientSchema>;
