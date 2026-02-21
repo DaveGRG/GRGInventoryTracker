@@ -276,8 +276,8 @@ export default function PhysicalCountPage() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="mt-1 border rounded-lg overflow-hidden">
-                          <div className="flex items-center justify-end gap-3 px-3 py-2 bg-muted/70 border-b sticky top-0 z-10">
-                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold w-16 text-center leading-tight">System<br/>Qty</span>
+                          <div className="flex items-center justify-end gap-6 px-3 py-2 bg-muted/70 border-b sticky top-0 z-10">
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold w-20 text-center leading-tight">System<br/>Qty</span>
                             <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold w-20 text-center leading-tight">Count</span>
                           </div>
                           <div className="max-h-[60vh] overflow-y-auto">
@@ -298,9 +298,9 @@ export default function PhysicalCountPage() {
                                       {item.sku}
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-3 flex-shrink-0">
+                                  <div className="flex items-center gap-6 flex-shrink-0">
                                     <p
-                                      className="text-sm font-semibold tabular-nums w-16 text-center"
+                                      className="text-sm font-semibold tabular-nums w-20 text-center"
                                       data-testid={`text-system-qty-${item.sku}`}
                                     >
                                       {systemQty}
