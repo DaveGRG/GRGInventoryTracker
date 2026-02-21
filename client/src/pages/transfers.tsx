@@ -154,7 +154,7 @@ export default function TransfersPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input type="search" placeholder="Search transfers..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" data-testid="input-search-transfers" />
             </div>
-            <Button onClick={() => setCreateOpen(true)} data-testid="button-new-transfer">
+            <Button size="sm" onClick={() => setCreateOpen(true)} data-testid="button-new-transfer">
               <Plus className="h-4 w-4 mr-1.5" />
               New
             </Button>

@@ -96,9 +96,9 @@ export default function ProjectsPage() {
                 data-testid="input-search-projects"
               />
             </div>
-            <Button onClick={() => setCreateOpen(true)} data-testid="button-new-project">
+            <Button size="sm" onClick={() => setCreateOpen(true)} data-testid="button-new-project">
               <Plus className="h-4 w-4 mr-1.5" />
-              New Product
+              New
             </Button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
