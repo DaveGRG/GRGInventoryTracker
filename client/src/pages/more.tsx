@@ -1,15 +1,11 @@
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Users, ScrollText, ClipboardCheck, Package, Bell } from "lucide-react";
+import { Users, Bell } from "lucide-react";
 import { Link } from "wouter";
 
 const menuItems = [
-  { href: "/more/manage-skus", label: "Manage SKUs", desc: "View, add SKUs & set par levels", icon: Package, testId: "link-manage-skus" },
-  { href: "/more/audit", label: "Audit Log", desc: "View all inventory changes", icon: ScrollText, testId: "link-audit-log" },
   { href: "/more/users", label: "User Management", desc: "Manage app users and roles", icon: Users, testId: "link-users" },
-  { href: "/more/par-report", label: "Par Level Report", desc: "View reorder recommendations", icon: FileText, testId: "link-par-report" },
-  { href: "/physical-count", label: "Physical Count", desc: "Count and adjust inventory", icon: ClipboardCheck, testId: "link-physical-count" },
   { href: "/more/notifications", label: "Notifications", desc: "Manage email alert recipients", icon: Bell, testId: "link-notifications" },
 ];
 
