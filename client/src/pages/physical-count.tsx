@@ -276,12 +276,12 @@ export default function PhysicalCountPage() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="mt-1 border rounded-lg overflow-hidden">
-                          <div className="grid px-3 py-2 bg-muted/70 border-b sticky top-0 z-10" style={{ gridTemplateColumns: '1fr 5rem 5rem' }}>
-                            <span></span>
-                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold text-center leading-tight">System<br/>Qty</span>
-                            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold text-center leading-tight">Count</span>
-                          </div>
                           <div className="max-h-[60vh] overflow-y-auto">
+                            <div className="grid px-3 py-2 bg-muted/70 border-b sticky top-0 z-10" style={{ gridTemplateColumns: '1fr 5rem 5rem' }}>
+                              <span></span>
+                              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold text-center leading-tight">System<br/>Qty</span>
+                              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold text-center leading-tight">Count</span>
+                            </div>
                             {groupItems.map((item) => {
                               const systemQty = item.systemQty;
                               const isDiff = hasDifference(item.sku, systemQty);
