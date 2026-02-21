@@ -87,6 +87,7 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/allocations`] });
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({ title: "Materials pulled", description: `${data.pulledCount} item${data.pulledCount !== 1 ? "s" : ""} pulled from inventory.` });
       setCheckedAllocations(new Set());
     },
@@ -104,6 +105,7 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/allocations`] });
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({ title: "Materials unpulled", description: `${data.unpulledCount} item${data.unpulledCount !== 1 ? "s" : ""} returned to inventory.` });
     },
     onError: (error: Error) => {
