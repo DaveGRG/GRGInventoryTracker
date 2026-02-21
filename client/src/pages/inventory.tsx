@@ -263,7 +263,7 @@ export default function InventoryPage() {
                         <span className="text-sm font-semibold">{displayName}</span>
                       </div>
                       <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
-                        {groupItems.length} items{!isOpen && groupNoStock.length > 0 ? `, ${groupNoStock.length} no stock` : ""}
+                        {groupItems.length} items{!isOpen && groupNoStock.length > 0 ? `, ${groupNoStock.length} not in stock` : ""}
                       </Badge>
                     </div>
                   </CollapsibleTrigger>
