@@ -9,12 +9,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Save, Loader2 } from "lucide-react";
+import { Search, Plus, Save, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { InventoryItem } from "@shared/schema";
+
+const speciesDisplayName: Record<string, string> = {
+  Cedar: "CDR",
+  "Cedar Tone": "CT",
+  "Black Locust": "BL",
+};
 
 export default function ManageSkusPage() {
   const [search, setSearch] = useState("");
@@ -31,6 +38,7 @@ export default function ManageSkusPage() {
   const [notes, setNotes] = useState("");
   const [editedLevels, setEditedLevels] = useState<Record<string, { farmParLevel: number; mkeParLevel: number }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const { data: items, isLoading } = useQuery<InventoryItem[]>({
@@ -227,41 +235,86 @@ export default function ManageSkusPage() {
           </p>
         ) : (
           <div className="space-y-1">
-            {filtered.map((item) => {
-              const isEdited = !!editedLevels[item.sku];
-              return (
-                <Card
-                  key={item.sku}
-                  className={isEdited ? "border-primary/50 bg-primary/5" : ""}
-                  data-testid={`card-sku-${item.sku}`}
-                >
-                  <CardContent className="p-3">
-                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-mono font-medium truncate" data-testid={`text-sku-${item.sku}`}>{item.sku}</p>
-                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+            {(() => {
+              const grouped: Record<string, InventoryItem[]> = {};
+              for (const item of filtered) {
+                const group = item.species || "Other";
+                if (!grouped[group]) grouped[group] = [];
+                grouped[group].push(item);
+              }
+              const groupOrder = Object.keys(grouped).sort();
+              const isSearching = !!search;
+
+              const toggleGroup = (group: string) => {
+                setExpandedGroups((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(group)) next.delete(group);
+                  else next.add(group);
+                  return next;
+                });
+              };
+
+              return groupOrder.map((group) => {
+                const groupItems = grouped[group];
+                const displayName = speciesDisplayName[group] || group;
+                const isOpen = expandedGroups.has(group) || isSearching;
+
+                return (
+                  <Collapsible key={group} open={isOpen} onOpenChange={() => toggleGroup(group)}>
+                    <CollapsibleTrigger className="w-full" data-testid={`group-toggle-${displayName}`}>
+                      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-muted/30 rounded-md">
+                        <div className="flex items-center gap-2">
+                          {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                          <span className="text-sm font-semibold">{displayName}</span>
+                        </div>
+                        <Badge variant="outline" className="no-default-hover-elevate text-xs tabular-nums">
+                          {groupItems.length} items
+                        </Badge>
                       </div>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={getDisplayValue(item.sku, "farm")}
-                        onChange={(e) => handleParChange(item.sku, "farm", e.target.value)}
-                        className="w-16 text-center tabular-nums"
-                        data-testid={`input-farm-par-${item.sku}`}
-                      />
-                      <Input
-                        type="number"
-                        min="0"
-                        value={getDisplayValue(item.sku, "mke")}
-                        onChange={(e) => handleParChange(item.sku, "mke", e.target.value)}
-                        className="w-16 text-center tabular-nums"
-                        data-testid={`input-mke-par-${item.sku}`}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-1 py-1">
+                        {groupItems.map((item) => {
+                          const isEdited = !!editedLevels[item.sku];
+                          return (
+                            <Card
+                              key={item.sku}
+                              className={isEdited ? "border-primary/50 bg-primary/5" : ""}
+                              data-testid={`card-sku-${item.sku}`}
+                            >
+                              <CardContent className="p-3">
+                                <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-2">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-mono font-medium truncate" data-testid={`text-sku-${item.sku}`}>{item.sku}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                                  </div>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={getDisplayValue(item.sku, "farm")}
+                                    onChange={(e) => handleParChange(item.sku, "farm", e.target.value)}
+                                    className="w-16 text-center tabular-nums"
+                                    data-testid={`input-farm-par-${item.sku}`}
+                                  />
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={getDisplayValue(item.sku, "mke")}
+                                    onChange={(e) => handleParChange(item.sku, "mke", e.target.value)}
+                                    className="w-16 text-center tabular-nums"
+                                    data-testid={`input-mke-par-${item.sku}`}
+                                  />
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              });
+            })()}
           </div>
         )}
 
