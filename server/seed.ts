@@ -16,15 +16,6 @@ export async function seedDatabase() {
   await storage.createLocation({ locationId: "MKE", locationName: "MKE", hub: "MKE" });
   await storage.createLocation({ locationId: "TRANSIT", locationName: "In Transit", hub: "Transit" });
 
-  const existing = await storage.createAppUser({
-    email: "admin@grgplayscapes.com",
-    passwordHash: "$2b$10$placeholder",
-    displayName: "Admin User",
-    role: "Admin",
-    assignedHub: "All",
-    active: true,
-  });
-
   const cedarItems: { sku: string; desc: string; t: string; w: string; l: string; fp: number; mp: number; status: string; notes?: string; farmStock: number; mkeStock: number }[] = [
     { sku: "CDR 1x10x12", desc: "1x10x12' Cedar", t: '1"', w: '10"', l: "12'", fp: 0, mp: 0, status: "Active", farmStock: 7, mkeStock: 0 },
     { sku: "CDR 1x12x12", desc: "1x12x12' Cedar", t: '1"', w: '12"', l: "12'", fp: 8, mp: 4, status: "Active", farmStock: 21, mkeStock: 0 },
