@@ -238,12 +238,6 @@ export default function PhysicalCountPage() {
                             >
                               {item.sku}
                             </span>
-                            <p
-                              className="text-xs text-muted-foreground truncate mt-0.5"
-                              data-testid={`text-desc-${item.sku}`}
-                            >
-                              {item.description}
-                            </p>
                           </div>
                           <div className="flex items-center gap-3 flex-shrink-0">
                             <div className="text-right">
