@@ -172,7 +172,8 @@
 
   body {
     @apply font-sans antialiased text-foreground;
-    background-color: hsl(93, 72%, 38%);
+    background: linear-gradient(to top, hsl(93, 72%, 38%, 0.2), hsl(93, 72%, 38%));
+    min-height: 100vh;
   }
 
   #root > div {
