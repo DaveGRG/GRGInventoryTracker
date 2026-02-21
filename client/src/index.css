@@ -177,8 +177,8 @@
 
   #root > div {
     @apply max-w-2xl mx-auto bg-background;
-    border-left: 8px solid #5c4a1e;
-    border-right: 8px solid #5c4a1e;
+    border-left: 6px solid #5c4a1e;
+    border-right: 6px solid #5c4a1e;
   }
 }
 
