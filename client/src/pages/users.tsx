@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus, User, Shield, MapPin } from "lucide-react";
-import { Link } from "wouter";
+import { Plus, User, Shield, MapPin } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { AppUser } from "@shared/schema";
@@ -65,10 +64,7 @@ export default function UsersPage() {
       <AppHeader title="Users" showBack />
 
       <div className="p-4 space-y-3 max-w-2xl mx-auto">
-        <div className="flex items-center justify-between gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/more"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Link>
-          </Button>
+        <div className="flex items-center justify-end gap-2">
           <Button size="sm" onClick={() => setCreateOpen(true)} data-testid="button-new-user">
             <Plus className="h-4 w-4 mr-1" /> Add User
           </Button>

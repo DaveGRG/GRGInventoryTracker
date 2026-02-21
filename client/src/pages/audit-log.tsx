@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Search, Filter } from "lucide-react";
-import { Link } from "wouter";
+import { Search, Filter } from "lucide-react";
 import type { AuditLogEntry } from "@shared/schema";
 
 const actionTypes = [
@@ -44,9 +43,6 @@ export default function AuditLogPage() {
 
       <div className="sticky top-14 z-30 bg-background border-b">
         <div className="p-3 space-y-2 max-w-2xl mx-auto">
-          <Button variant="ghost" size="sm" asChild className="mb-1">
-            <Link href="/more"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Link>
-          </Button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input type="search" placeholder="Search by SKU, user, reason..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" data-testid="input-search-audit" />
