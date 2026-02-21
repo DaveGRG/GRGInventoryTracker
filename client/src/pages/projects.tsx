@@ -289,7 +289,10 @@ export default function ProjectsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-sm">{project.projectName}</span>
-                          <StatusBadge status={project.status} type="project" />
+                          <StatusBadge
+                            status={(project as any).allPulled ? "Pulled" : project.status}
+                            type={(project as any).allPulled ? "allocation" : "project"}
+                          />
                         </div>
                         <span className="text-xs font-mono text-muted-foreground">{project.projectId}</span>
                       </div>

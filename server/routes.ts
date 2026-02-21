@@ -378,7 +378,13 @@ export async function registerRoutes(
 
   app.get("/api/projects", isAuthenticated, async (_req, res) => {
     const projs = await storage.getProjects();
-    res.json(projs);
+    const allAllocs = await storage.getAllocations();
+    const result = projs.map((p) => {
+      const projAllocs = allAllocs.filter((a) => a.projectId === p.projectId);
+      const allPulled = projAllocs.length > 0 && projAllocs.every((a) => a.status === "Pulled");
+      return { ...p, allPulled };
+    });
+    res.json(result);
   });
 
   app.get("/api/projects/:id", isAuthenticated, async (req, res) => {
