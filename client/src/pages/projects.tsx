@@ -174,7 +174,7 @@ export default function ProjectsPage() {
               <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} data-testid="input-project-name" />
             </div>
             <div className="relative">
-              <Label>Client</Label>
+              <Label>Project</Label>
               <div className="relative">
                 <Input
                   value={client}
@@ -184,7 +184,7 @@ export default function ProjectsPage() {
                   }}
                   onFocus={() => setClientDropdownOpen(true)}
                   onBlur={() => setTimeout(() => setClientDropdownOpen(false), 150)}
-                  placeholder="Select or type a client name"
+                  placeholder="Select or type a project name"
                   data-testid="input-project-client"
                 />
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
