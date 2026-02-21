@@ -8,9 +8,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User } from "lucide-react";
+import { ArrowLeft, LogOut, User } from "lucide-react";
+import { useLocation } from "wouter";
 
-export function AppHeader({ title }: { title: string }) {
+export function AppHeader({ title, showBack }: { title: string; showBack?: boolean }) {
+  const [, navigate] = useLocation();
   const { user } = useAuth();
 
   const initials = user
