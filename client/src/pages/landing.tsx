@@ -42,7 +42,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="flex items-center justify-between gap-2 px-4 md:px-8 h-14">
           <div className="flex items-center gap-2">
-            <img src={logoImg} alt="GRG Playscapes" className="h-8 w-8 object-contain" />
+            <img src={logoImg} alt="GRG Playscapes" className="h-10 w-auto object-contain" />
             <span className="font-semibold text-base">GRG Playscapes</span>
           </div>
           <Button asChild data-testid="button-login-header">
