@@ -20,6 +20,7 @@ import ClientsPage from "@/pages/clients";
 import ManageSkusPage from "@/pages/manage-skus";
 import NotificationsPage from "@/pages/notifications";
 import NotFound from "@/pages/not-found";
+import logoImg from "@assets/image_1771694966878.png";
 
 function AuthenticatedRoutes() {
   return (
@@ -51,9 +52,7 @@ function Router() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">GRG</span>
-          </div>
+          <img src={logoImg} alt="GRG" className="h-10 w-10 object-contain" />
           <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: "60%" }} />
           </div>

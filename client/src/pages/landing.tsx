@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Package, Truck, ClipboardList, BarChart3, Shield, Smartphone } from "lucide-react";
+import logoImg from "@assets/image_1771694966878.png";
 
 const features = [
   {
@@ -41,9 +42,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="flex items-center justify-between gap-2 px-4 md:px-8 h-14">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">GRG</span>
-            </div>
+            <img src={logoImg} alt="GRG Playscapes" className="h-8 w-8 object-contain" />
             <span className="font-semibold text-base">GRG Playscapes</span>
           </div>
           <Button asChild data-testid="button-login-header">

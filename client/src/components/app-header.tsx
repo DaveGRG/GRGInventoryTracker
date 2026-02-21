@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
+import logoImg from "@assets/image_1771694966878.png";
 
 export function AppHeader({ title }: { title: string }) {
   const { user } = useAuth();
@@ -20,12 +21,10 @@ export function AppHeader({ title }: { title: string }) {
   return (
     <header className="sticky top-0 z-40">
       <div className="flex items-center justify-between gap-2 px-5 h-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-bold text-xs">GRG</span>
-          </div>
-          <h1 className="text-2xl font-bold truncate" style={{ color: '#5c4a1e' }} data-testid="text-page-title">{title}</h1>
+        <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+          <img src={logoImg} alt="GRG" className="h-8 w-8 object-contain" />
         </div>
+        <h1 className="text-2xl font-bold truncate text-center flex-1" style={{ color: '#5c4a1e' }} data-testid="text-page-title">{title}</h1>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full flex-shrink-0" data-testid="button-user-menu">
