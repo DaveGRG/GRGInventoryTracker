@@ -24,6 +24,17 @@ const createTransferSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
+const createBatchTransferSchema = z.object({
+  items: z.array(z.object({
+    sku: z.string().min(1),
+    quantity: z.number().int().min(1),
+  })).min(1),
+  fromLocation: z.string().min(1),
+  toLocation: z.string().min(1),
+  requestDate: z.string().optional(),
+  notes: z.string().optional().nullable(),
+});
+
 const createProjectSchema = z.object({
   projectName: z.string().min(1),
   client: z.string().min(1),
@@ -702,6 +713,57 @@ export async function registerRoutes(
     });
 
     res.json(transfer);
+  });
+
+  app.post("/api/transfers/batch", isAuthenticated, validate(createBatchTransferSchema), async (req: any, res) => {
+    const { items, fromLocation, toLocation, requestDate, notes } = req.body;
+    const userEmail = req.user?.claims?.email || "system";
+    const date = requestDate || new Date().toISOString().split("T")[0];
+
+    if (fromLocation === toLocation) {
+      return res.status(400).json({ message: "Source and destination must be different" });
+    }
+
+    for (const item of items) {
+      const stockLevel = await storage.getStockLevel(item.sku, fromLocation);
+      if (!stockLevel || stockLevel.quantity < item.quantity) {
+        return res.status(400).json({ message: `Insufficient stock for ${item.sku} at ${fromLocation}. Available: ${stockLevel?.quantity || 0}` });
+      }
+    }
+
+    const created: any[] = [];
+    await storage.runTransaction(async (tx) => {
+      for (const item of items) {
+        const [transfer] = await tx.insert(transfers).values({
+          sku: item.sku,
+          quantity: item.quantity,
+          fromLocation,
+          toLocation,
+          status: "Requested",
+          requestedBy: userEmail,
+          requestDate: date,
+          shippedDate: null,
+          receivedBy: null,
+          receivedDate: null,
+          notes: notes || null,
+        }).returning();
+
+        await tx.insert(auditLog).values({
+          userEmail,
+          actionType: "Transfer",
+          sku: item.sku,
+          locationId: fromLocation,
+          quantityBefore: null,
+          quantityAfter: null,
+          reason: `Transfer requested: ${item.quantity} from ${fromLocation} to ${toLocation}`,
+          notes: null,
+        });
+
+        created.push(transfer);
+      }
+    });
+
+    res.json(created);
   });
 
   app.post("/api/transfers/:id/ship", isAuthenticated, async (req: any, res) => {

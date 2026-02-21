@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { AppHeader } from "@/components/app-header";
@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ArrowRight, Search, Truck, Package, Trash2, CalendarIcon } from "lucide-react";
+import { Plus, ArrowRight, Search, Truck, Package, Trash2, CalendarIcon, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -26,12 +26,27 @@ export default function TransfersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
-  const [sku, setSku] = useState("");
-  const [qty, setQty] = useState("");
+  const [skuSearch, setSkuSearch] = useState("");
+  const [skuSearchOpen, setSkuSearchOpen] = useState(false);
+  const [itemQty, setItemQty] = useState("1");
+  const [transferItems, setTransferItems] = useState<{ sku: string; description: string; quantity: number }[]>([]);
   const [fromLoc, setFromLoc] = useState("");
   const [toLoc, setToLoc] = useState("");
   const [notes, setNotes] = useState("");
   const [transferDate, setTransferDate] = useState<Date>(new Date());
+  const skuInputRef = useRef<HTMLInputElement>(null);
+  const skuDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (skuDropdownRef.current && !skuDropdownRef.current.contains(e.target as Node) &&
+          skuInputRef.current && !skuInputRef.current.contains(e.target as Node)) {
+        setSkuSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [shipDialog, setShipDialog] = useState<Transfer | null>(null);
   const [receiveDialog, setReceiveDialog] = useState<Transfer | null>(null);
   const [receivedQty, setReceivedQty] = useState("");
@@ -52,7 +67,7 @@ export default function TransfersPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/transfers", data);
+      const res = await apiRequest("POST", "/api/transfers/batch", data);
       return res.json();
     },
     onSuccess: () => {
@@ -134,7 +149,30 @@ export default function TransfersPage() {
     },
   });
 
-  const resetForm = () => { setSku(""); setQty(""); setFromLoc(""); setToLoc(""); setNotes(""); setTransferDate(new Date()); };
+  const resetForm = () => { setSkuSearch(""); setItemQty("1"); setTransferItems([]); setFromLoc(""); setToLoc(""); setNotes(""); setTransferDate(new Date()); setSkuSearchOpen(false); };
+
+  const filteredItems = items?.filter((item) => {
+    if (!skuSearch) return true;
+    const q = skuSearch.toLowerCase();
+    return item.sku.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
+  }).slice(0, 20);
+
+  const addItem = (item: InventoryItem) => {
+    const quantity = parseInt(itemQty) || 1;
+    const existing = transferItems.find((t) => t.sku === item.sku);
+    if (existing) {
+      setTransferItems(transferItems.map((t) => t.sku === item.sku ? { ...t, quantity: t.quantity + quantity } : t));
+    } else {
+      setTransferItems([...transferItems, { sku: item.sku, description: item.description, quantity }]);
+    }
+    setSkuSearch("");
+    setItemQty("1");
+    setSkuSearchOpen(false);
+  };
+
+  const removeItem = (sku: string) => {
+    setTransferItems(transferItems.filter((t) => t.sku !== sku));
+  };
 
   const filtered = transfersList?.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
@@ -243,54 +281,101 @@ export default function TransfersPage() {
         </div>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New Transfer</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>SKU</Label>
-              <Select value={sku} onValueChange={setSku}>
-                <SelectTrigger data-testid="select-transfer-sku">
-                  <SelectValue placeholder="Select item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {items?.map((item) => (
-                    <SelectItem key={item.sku} value={item.sku}>{item.sku} - {item.description}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Add Items</Label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    ref={skuInputRef}
+                    type="text"
+                    placeholder="Search SKU..."
+                    value={skuSearch}
+                    onChange={(e) => { setSkuSearch(e.target.value); setSkuSearchOpen(e.target.value.length > 0); }}
+                    onFocus={() => { if (skuSearch) setSkuSearchOpen(true); }}
+                    className="pl-9"
+                    data-testid="input-transfer-sku-search"
+                  />
+                  {skuSearchOpen && filteredItems && filteredItems.length > 0 && (
+                    <div ref={skuDropdownRef} className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                      {filteredItems.map((item) => (
+                        <button
+                          key={item.sku}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex justify-between items-center"
+                          onClick={() => addItem(item)}
+                          data-testid={`sku-option-${item.sku}`}
+                        >
+                          <span className="font-mono text-xs">{item.sku}</span>
+                          <span className="text-muted-foreground text-xs ml-2 truncate">{item.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Input
+                  type="number"
+                  min="1"
+                  value={itemQty}
+                  onChange={(e) => setItemQty(e.target.value)}
+                  className="w-16 text-center"
+                  placeholder="Qty"
+                  data-testid="input-transfer-item-qty"
+                />
+              </div>
             </div>
-            <div>
-              <Label>Quantity</Label>
-              <Input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} data-testid="input-transfer-qty" />
-            </div>
-            <div>
-              <Label>From Location</Label>
-              <Select value={fromLoc} onValueChange={setFromLoc}>
-                <SelectTrigger data-testid="select-transfer-from">
-                  <SelectValue placeholder="Select source" />
-                </SelectTrigger>
-                <SelectContent>
-                  {physicalLocations.map((loc) => (
-                    <SelectItem key={loc.locationId} value={loc.locationId}>{loc.locationName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>To Location</Label>
-              <Select value={toLoc} onValueChange={setToLoc}>
-                <SelectTrigger data-testid="select-transfer-to">
-                  <SelectValue placeholder="Select destination" />
-                </SelectTrigger>
-                <SelectContent>
-                  {physicalLocations.filter((l) => l.locationId !== fromLoc).map((loc) => (
-                    <SelectItem key={loc.locationId} value={loc.locationId}>{loc.locationName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {transferItems.length > 0 && (
+              <div className="border rounded-md divide-y">
+                {transferItems.map((item) => (
+                  <div key={item.sku} className="flex items-center justify-between px-3 py-2" data-testid={`transfer-item-${item.sku}`}>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-mono text-xs">{item.sku}</span>
+                      <span className="text-muted-foreground text-xs ml-2">x{item.quantity}</span>
+                    </div>
+                    <button onClick={() => removeItem(item.sku)} className="text-muted-foreground hover:text-destructive ml-2" data-testid={`remove-item-${item.sku}`}>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <div className="px-3 py-1.5 bg-muted/50 text-xs text-muted-foreground">
+                  {transferItems.length} item{transferItems.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>From</Label>
+                <Select value={fromLoc} onValueChange={setFromLoc}>
+                  <SelectTrigger data-testid="select-transfer-from">
+                    <SelectValue placeholder="Source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {physicalLocations.map((loc) => (
+                      <SelectItem key={loc.locationId} value={loc.locationId}>{loc.locationName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>To</Label>
+                <Select value={toLoc} onValueChange={setToLoc}>
+                  <SelectTrigger data-testid="select-transfer-to">
+                    <SelectValue placeholder="Destination" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {physicalLocations.filter((l) => l.locationId !== fromLoc).map((loc) => (
+                      <SelectItem key={loc.locationId} value={loc.locationId}>{loc.locationName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div>
               <Label>Date</Label>
@@ -312,13 +397,19 @@ export default function TransfersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setCreateOpen(false); resetForm(); }}>Cancel</Button>
             <Button
-              onClick={() => createMutation.mutate({ sku, quantity: parseInt(qty), fromLocation: fromLoc, toLocation: toLoc, requestDate: format(transferDate, "yyyy-MM-dd"), notes: notes || undefined })}
-              disabled={!sku || !qty || !fromLoc || !toLoc || createMutation.isPending}
+              onClick={() => createMutation.mutate({
+                items: transferItems.map((t) => ({ sku: t.sku, quantity: t.quantity })),
+                fromLocation: fromLoc,
+                toLocation: toLoc,
+                requestDate: format(transferDate, "yyyy-MM-dd"),
+                notes: notes || undefined,
+              })}
+              disabled={transferItems.length === 0 || !fromLoc || !toLoc || createMutation.isPending}
               data-testid="button-save-transfer"
             >
-              {createMutation.isPending ? "Creating..." : "Request Transfer"}
+              {createMutation.isPending ? "Creating..." : `Request Transfer (${transferItems.length})`}
             </Button>
           </DialogFooter>
         </DialogContent>
