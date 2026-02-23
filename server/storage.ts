@@ -387,12 +387,12 @@ export class DatabaseStorage implements IStorage {
     const maxPo = result[0]?.maxPo;
     let num = 1;
     if (maxPo) {
-      const match = maxPo.match(/PO#(\d+)/);
+      const match = maxPo.match(/(?:PO|QR)#(\d+)/);
       if (match) {
         num = parseInt(match[1], 10) + 1;
       }
     }
-    return `PO#${String(num).padStart(4, "0")}`;
+    return `QR#${String(num).padStart(4, "0")}`;
   }
 
   async getPurchaseOrderItems(poId: number): Promise<PurchaseOrderItem[]> {

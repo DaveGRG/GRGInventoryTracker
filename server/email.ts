@@ -103,11 +103,11 @@ export async function sendPurchaseOrderEmail(
   const html = `
     <div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto">
       <div style="background:#5a8c1e;padding:16px 24px;border-radius:8px 8px 0 0">
-        <h2 style="color:#fff;margin:0;font-size:20px">Purchase Order</h2>
+        <h2 style="color:#fff;margin:0;font-size:20px">Quote Request</h2>
       </div>
       <div style="padding:24px;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 8px 8px">
         <table style="margin-bottom:20px">
-          <tr><td style="padding:4px 16px 4px 0;font-weight:bold;color:#555">PO Number:</td><td style="font-size:16px;font-weight:bold">${data.poNumber}</td></tr>
+          <tr><td style="padding:4px 16px 4px 0;font-weight:bold;color:#555">Quote Request:</td><td style="font-size:16px;font-weight:bold">${data.poNumber}</td></tr>
           <tr><td style="padding:4px 16px 4px 0;font-weight:bold;color:#555">Date:</td><td>${data.orderDate}</td></tr>
           <tr><td style="padding:4px 16px 4px 0;font-weight:bold;color:#555">Vendor:</td><td>${data.vendorName}</td></tr>
           <tr><td style="padding:4px 16px 4px 0;font-weight:bold;color:#555">Ordered By:</td><td>${data.sentBy}</td></tr>
@@ -132,10 +132,10 @@ export async function sendPurchaseOrderEmail(
       from: `"GRG Playscapes" <${process.env.GMAIL_USER}>`,
       replyTo: process.env.GMAIL_USER,
       to: vendorEmail,
-      subject: `Purchase Order ${data.poNumber} - GRG Playscapes`,
+      subject: `Quote Request ${data.poNumber} - GRG Playscapes`,
       html,
     });
-    console.log(`Purchase order ${data.poNumber} sent to ${vendorEmail}`);
+    console.log(`Quote request ${data.poNumber} sent to ${vendorEmail}`);
     return true;
   } catch (error) {
     console.error("Failed to send purchase order email:", error);

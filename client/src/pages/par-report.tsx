@@ -79,7 +79,7 @@ export default function ParReportPage() {
       const data = await res.json();
       setPoNumber(data.poNumber);
     } catch {
-      setPoNumber("PO#0001");
+      setPoNumber("QR#0001");
     }
     setPoDialogOpen(true);
   };
@@ -170,7 +170,7 @@ export default function ParReportPage() {
             ) : (
               <>
                 <ShoppingCart className="h-3 w-3 mr-1" />
-                Add to PO
+                Quote Request
               </>
             )}
           </Button>
@@ -244,7 +244,7 @@ export default function ParReportPage() {
               data-testid="button-generate-po"
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              Generate PO ({selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""})
+              Generate Quote Request ({selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""})
             </Button>
           </div>
         </div>
@@ -255,13 +255,13 @@ export default function ParReportPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
-              Purchase Order
+              Quote Request
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center justify-between bg-muted/50 rounded-md p-3">
               <div>
-                <p className="text-xs text-muted-foreground">PO Number</p>
+                <p className="text-xs text-muted-foreground">Quote Request</p>
                 <p className="text-base font-mono font-bold">{poNumber}</p>
               </div>
               <div className="text-right">
@@ -370,7 +370,7 @@ export default function ParReportPage() {
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-1.5" />
-                  Send PO
+                  Send Quote Request
                 </>
               )}
             </Button>
