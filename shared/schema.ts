@@ -148,7 +148,28 @@ export const notificationRecipients = pgTable("notification_recipients", {
   email: text("email").notNull(),
   name: text("name").notNull(),
   active: boolean("active").notNull().default(true),
+  notifyTransfers: boolean("notify_transfers").notNull().default(true),
+  notifyReconciliation: boolean("notify_reconciliation").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const reconciliationReports = pgTable("reconciliation_reports", {
+  id: serial("id").primaryKey(),
+  locationId: text("location_id").notNull(),
+  submittedBy: text("submitted_by").notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  totalItems: integer("total_items").notNull().default(0),
+  discrepancyCount: integer("discrepancy_count").notNull().default(0),
+  notes: text("notes"),
+});
+
+export const reconciliationReportItems = pgTable("reconciliation_report_items", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").notNull().references(() => reconciliationReports.id),
+  sku: text("sku").notNull(),
+  systemQty: integer("system_qty").notNull(),
+  countedQty: integer("counted_qty").notNull(),
+  difference: integer("difference").notNull(),
 });
 
 export const inventoryItemsRelations = relations(inventoryItems, ({ many }) => ({
@@ -269,3 +290,11 @@ export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
 export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderItems).omit({ id: true });
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
 export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
+
+export const insertReconciliationReportSchema = createInsertSchema(reconciliationReports).omit({ id: true, submittedAt: true });
+export type ReconciliationReport = typeof reconciliationReports.$inferSelect;
+export type InsertReconciliationReport = z.infer<typeof insertReconciliationReportSchema>;
+
+export const insertReconciliationReportItemSchema = createInsertSchema(reconciliationReportItems).omit({ id: true });
+export type ReconciliationReportItem = typeof reconciliationReportItems.$inferSelect;
+export type InsertReconciliationReportItem = z.infer<typeof insertReconciliationReportItemSchema>;
