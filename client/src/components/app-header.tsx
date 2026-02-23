@@ -12,7 +12,7 @@ import { LogOut } from "lucide-react";
 import logoImg from "@assets/image_1771694966878.png";
 
 export function AppHeader({ title }: { title: string }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const initials = user
     ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() || "U"
@@ -40,11 +40,13 @@ export function AppHeader({ title }: { title: string }) {
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="/api/logout" className="flex items-center gap-2" data-testid="button-logout">
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </a>
+            <DropdownMenuItem
+              onClick={() => logout()}
+              className="flex items-center gap-2 cursor-pointer"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

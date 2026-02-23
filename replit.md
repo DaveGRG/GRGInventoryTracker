@@ -4,11 +4,20 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-23: Firebase Google Sign-In authentication
+  - Replaced Replit Auth with Firebase Auth using Google Sign-In popup
+  - Only @grgplayscapes.com email accounts can access the app
+  - Non-matching emails silently signed out and returned to splash screen
+  - Backend verifies Firebase ID tokens via firebase-admin (Bearer token in Authorization header)
+  - Frontend sends Firebase ID tokens with all API requests via queryClient
+  - Deleted old landing/login page; splash screen now triggers Google Sign-In on tap/keypress
+  - Firebase config at client/src/lib/firebase.ts, auth middleware at server/firebaseAuth.ts
+  - Secrets: VITE_FIREBASE_API_KEY, VITE_FIREBASE_APP_ID, VITE_FIREBASE_PROJECT_ID
 - 2026-02-23: Splash screen
   - Animated splash screen on app launch with playground background photo, GRG logo fade-in, and audio chord
   - Three-phase animation: background fade (0→2.8s), logo + audio (2.8s), "Tap/Press to continue" prompt (3.8s)
   - Audio plays on user interaction (tap/keypress) to comply with browser autoplay policies
-  - Renders before auth loading; transitions to login/dashboard on user interaction
+  - Splash screen triggers Google Sign-In popup; transitions to dashboard on successful auth
   - SplashScreen component at client/src/pages/splash.tsx
 - 2026-02-23: Reconciliation reports (Physical Count refactor)
   - Physical Count page no longer modifies inventory directly
@@ -122,7 +131,7 @@ A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory 
 - Backend: Express.js + TypeScript
 - Database: PostgreSQL (Neon-backed via Replit)
 - ORM: Drizzle ORM
-- Auth: Replit Auth
+- Auth: Firebase Auth (Google Sign-In, @grgplayscapes.com domain only)
 
 ### Key Files
 - `shared/schema.ts` - All Drizzle table definitions, insert schemas, types

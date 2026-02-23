@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { signInWithPopup, signOut } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
 import splashBg from "@assets/image_1771868325773.png";
 import logoImg from "@assets/image_1771872671169.png";
 
@@ -8,7 +10,9 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState(0);
+  const [signingIn, setSigningIn] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioPlayedRef = useRef(false);
 
   useEffect(() => {
     audioRef.current = new Audio("/sounds/splash-chord.wav");
@@ -17,12 +21,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase(1), 100);
-    const t2 = setTimeout(() => {
-      setPhase(2);
-      if (audioRef.current) {
-        audioRef.current.play().catch(() => {});
-      }
-    }, 2800);
+    const t2 = setTimeout(() => setPhase(2), 2800);
     const t3 = setTimeout(() => setPhase(3), 3800);
     return () => {
       clearTimeout(t1);
@@ -31,29 +30,40 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     };
   }, []);
 
-  const audioPlayedRef = useRef(false);
+  const handleSignIn = useCallback(async () => {
+    if (phase < 3 || signingIn) return;
 
-  const advance = useCallback(() => {
     if (audioRef.current && !audioPlayedRef.current) {
       audioPlayedRef.current = true;
       audioRef.current.play().catch(() => {});
     }
-    if (phase >= 3) {
-      onComplete();
+
+    setSigningIn(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const email = result.user.email || "";
+      if (email.endsWith("@grgplayscapes.com")) {
+        onComplete();
+      } else {
+        await signOut(auth);
+        setSigningIn(false);
+      }
+    } catch {
+      setSigningIn(false);
     }
-  }, [phase, onComplete]);
+  }, [phase, signingIn, onComplete]);
 
   useEffect(() => {
     if (phase < 3) return;
-    const handleKey = () => advance();
-    const handleTouch = () => advance();
+    const handleKey = () => handleSignIn();
+    const handleClick = () => handleSignIn();
     window.addEventListener("keydown", handleKey);
-    window.addEventListener("click", handleTouch);
+    window.addEventListener("click", handleClick);
     return () => {
       window.removeEventListener("keydown", handleKey);
-      window.removeEventListener("click", handleTouch);
+      window.removeEventListener("click", handleClick);
     };
-  }, [phase, advance]);
+  }, [phase, handleSignIn]);
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
@@ -131,7 +141,11 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           whiteSpace: "nowrap",
         }}
       >
-        {isMobile ? "Tap to continue" : "Press any key to continue"}
+        {signingIn
+          ? "Signing in..."
+          : isMobile
+            ? "Tap to continue"
+            : "Press any key to continue"}
       </p>
     </div>
   );

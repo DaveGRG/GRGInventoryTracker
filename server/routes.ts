@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { isAuthenticated } from "./firebaseAuth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
 import { insertInventoryItemSchema, insertNotificationRecipientSchema, insertVendorSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists, purchaseOrders, purchaseOrderItems, reconciliationReports, reconciliationReportItems } from "@shared/schema";
@@ -110,9 +110,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  await setupAuth(app);
-  registerAuthRoutes(app);
-
   await seedDatabase();
 
   app.get("/api/locations", isAuthenticated, async (_req, res) => {

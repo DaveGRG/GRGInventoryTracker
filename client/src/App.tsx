@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import SplashScreen from "@/pages/splash";
-import LandingPage from "@/pages/landing";
 import DashboardPage from "@/pages/dashboard";
 import InventoryPage from "@/pages/inventory";
 import ProjectsPage from "@/pages/projects";
@@ -24,7 +23,7 @@ import NotificationsPage from "@/pages/notifications";
 import VendorsPage from "@/pages/vendors";
 import ReconciliationReportsPage from "@/pages/reconciliation-reports";
 import NotFound from "@/pages/not-found";
-import logoImg from "@assets/image_1771694966878.png";
+import logoImg from "@assets/image_1771872671169.png";
 
 function AuthenticatedRoutes() {
   return (
@@ -51,14 +50,21 @@ function AuthenticatedRoutes() {
   );
 }
 
-function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+function AppContent() {
+  const { isAuthenticated, isLoading, logout } = useAuth();
+  const [splashDismissed, setSplashDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      setSplashDismissed(true);
+    }
+  }, [isLoading, isAuthenticated]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <img src={logoImg} alt="GRG" className="h-10 w-10 object-contain" />
+          <img src={logoImg} alt="GRG" className="h-16 w-auto object-contain" />
           <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: "60%" }} />
           </div>
@@ -67,25 +73,19 @@ function Router() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <LandingPage />;
+  if (!isAuthenticated || !splashDismissed) {
+    return <SplashScreen onComplete={() => setSplashDismissed(true)} />;
   }
 
   return <AuthenticatedRoutes />;
 }
 
 function App() {
-  const [showSplash, setShowSplash] = useState(true);
-
-  if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <AppContent />
       </TooltipProvider>
     </QueryClientProvider>
   );
