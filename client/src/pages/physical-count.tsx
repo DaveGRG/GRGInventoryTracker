@@ -157,47 +157,39 @@ export default function PhysicalCountPage() {
   };
 
   const handleSubmit = async () => {
-    if (itemsWithDiffs.length === 0) return;
+    if (locationItems.length === 0) return;
     setIsSubmitting(true);
     setSubmissionResult(null);
 
-    let successCount = 0;
-    let errorCount = 0;
+    try {
+      const items = locationItems.map((item) => ({
+        sku: item.sku,
+        systemQty: item.systemQty,
+        countedQty: getCountedQty(item.sku, item.systemQty),
+      }));
 
-    for (const item of itemsWithDiffs) {
-      const newQty = getCountedQty(item.sku, item.systemQty);
-      try {
-        await apiRequest("POST", "/api/stock/adjust", {
-          sku: item.sku,
-          locationId: selectedLocation,
-          newQuantity: newQty,
-          reason: "Physical Count",
-          notes: `Physical count adjustment: ${item.systemQty} → ${newQty}`,
-        });
-        successCount++;
-      } catch {
-        errorCount++;
-      }
-    }
-
-    queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/audit-log"] });
-
-    setIsSubmitting(false);
-    setSubmissionResult(successCount);
-    setCountedQuantities({});
-
-    if (errorCount > 0) {
-      toast({
-        title: "Partial submission",
-        description: `${successCount} items adjusted, ${errorCount} failed.`,
-        variant: "destructive",
+      await apiRequest("POST", "/api/reconciliation-reports", {
+        locationId: selectedLocation,
+        items,
       });
-    } else {
+
+      queryClient.invalidateQueries({ queryKey: ["/api/reconciliation-reports"] });
+
+      const discrepancyCount = items.filter((i) => i.systemQty !== i.countedQty).length;
+      setIsSubmitting(false);
+      setSubmissionResult(items.length);
+      setCountedQuantities({});
+
       toast({
-        title: "Count submitted",
-        description: `${successCount} item${successCount !== 1 ? "s" : ""} adjusted successfully.`,
+        title: "Reconciliation report submitted",
+        description: `${items.length} items counted, ${discrepancyCount} discrepanc${discrepancyCount !== 1 ? "ies" : "y"} found.`,
+      });
+    } catch {
+      setIsSubmitting(false);
+      toast({
+        title: "Error",
+        description: "Failed to submit reconciliation report.",
+        variant: "destructive",
       });
     }
   };
@@ -379,7 +371,7 @@ export default function PhysicalCountPage() {
               </div>
             )}
 
-            {diffCount > 0 && (
+            {locationItems.length > 0 && (
               <div className="sticky bottom-20 z-30 pt-2">
                 <Button
                   className="w-full"
@@ -395,7 +387,7 @@ export default function PhysicalCountPage() {
                   ) : (
                     <>
                       <ClipboardCheck className="h-4 w-4 mr-2" />
-                      Submit Count ({diffCount} item{diffCount !== 1 ? "s" : ""})
+                      Submit Reconciliation Report{diffCount > 0 ? ` (${diffCount} discrepanc${diffCount !== 1 ? "ies" : "y"})` : ""}
                     </>
                   )}
                 </Button>

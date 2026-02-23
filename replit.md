@@ -4,6 +4,15 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-23: Reconciliation reports (Physical Count refactor)
+  - Physical Count page no longer modifies inventory directly
+  - Submitting a count creates a read-only reconciliation report comparing system vs counted quantities
+  - reconciliation_reports table (locationId, submittedBy, totalItems, discrepancyCount, notes)
+  - reconciliation_report_items table (reportId, sku, systemQty, countedQty, difference)
+  - Reconciliation Reports history page at /more/reconciliation-reports with detail dialog
+  - Two notification types: notifyTransfers and notifyReconciliation toggles per recipient
+  - Email notification sent to reconciliation-subscribed recipients with discrepancy table
+  - API: POST /api/reconciliation-reports, GET /api/reconciliation-reports, GET /api/reconciliation-reports/:id
 - 2026-02-21: CSV-first product creation workflow
   - Product creation starts with CSV upload (Catalog ID, Product name, SKU, QTY columns)
   - Step 2 shows CSV preview and asks for Location (hub) and Job Name

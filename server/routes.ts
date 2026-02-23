@@ -4,10 +4,10 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertInventoryItemSchema, insertNotificationRecipientSchema, insertVendorSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists, purchaseOrders, purchaseOrderItems } from "@shared/schema";
+import { insertInventoryItemSchema, insertNotificationRecipientSchema, insertVendorSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists, purchaseOrders, purchaseOrderItems, reconciliationReports, reconciliationReportItems } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { sendTransferNotification, sendPurchaseOrderEmail } from "./email";
+import { sendTransferNotification, sendPurchaseOrderEmail, sendReconciliationEmail } from "./email";
 
 const stockAdjustSchema = z.object({
   sku: z.string().min(1),
@@ -859,9 +859,10 @@ export async function registerRoutes(
     });
 
     const activeRecipients = await storage.getActiveNotificationRecipients();
-    if (activeRecipients.length > 0) {
+    const transferRecipients = activeRecipients.filter((r) => r.notifyTransfers);
+    if (transferRecipients.length > 0) {
       sendTransferNotification(
-        activeRecipients.map((r) => r.email),
+        transferRecipients.map((r) => r.email),
         { items, fromLocation, toLocation, requestDate: date, requestedBy: userEmail, notes }
       ).catch((err) => console.error("Email notification error:", err));
     }
@@ -1337,6 +1338,78 @@ export async function registerRoutes(
       return { ...po, items, vendor };
     }));
     res.json(result);
+  });
+
+  const createReconciliationSchema = z.object({
+    locationId: z.string().min(1),
+    items: z.array(z.object({
+      sku: z.string().min(1),
+      systemQty: z.number().int().min(0),
+      countedQty: z.number().int().min(0),
+    })),
+    notes: z.string().optional().nullable(),
+  });
+
+  app.post("/api/reconciliation-reports", isAuthenticated, validate(createReconciliationSchema), async (req: any, res) => {
+    const { locationId, items, notes } = req.body;
+    const submittedBy = req.user?.claims?.email || "unknown";
+
+    const allItems = items.map((item: { sku: string; systemQty: number; countedQty: number }) => ({
+      ...item,
+      difference: item.countedQty - item.systemQty,
+    }));
+    const discrepancies = allItems.filter((item: { difference: number }) => item.difference !== 0);
+
+    const report = await storage.createReconciliationReport({
+      locationId,
+      submittedBy,
+      totalItems: allItems.length,
+      discrepancyCount: discrepancies.length,
+      notes: notes || null,
+    });
+
+    for (const item of allItems) {
+      await storage.createReconciliationReportItem({
+        reportId: report.id,
+        sku: item.sku,
+        systemQty: item.systemQty,
+        countedQty: item.countedQty,
+        difference: item.difference,
+      });
+    }
+
+    const activeRecipients = await storage.getActiveNotificationRecipients();
+    const reconciliationRecipients = activeRecipients.filter((r) => r.notifyReconciliation);
+    if (reconciliationRecipients.length > 0) {
+      const submittedDate = new Date().toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "numeric", timeZone: "America/Chicago" });
+      sendReconciliationEmail(
+        reconciliationRecipients.map((r) => r.email),
+        {
+          reportId: report.id,
+          locationId,
+          submittedBy,
+          submittedDate,
+          totalItems: allItems.length,
+          discrepancyCount: discrepancies.length,
+          items: discrepancies,
+        }
+      ).catch((err) => console.error("Reconciliation email error:", err));
+    }
+
+    res.json({ ...report, items: allItems });
+  });
+
+  app.get("/api/reconciliation-reports", isAuthenticated, async (_req, res) => {
+    const reports = await storage.getReconciliationReports();
+    res.json(reports);
+  });
+
+  app.get("/api/reconciliation-reports/:id", isAuthenticated, async (req: any, res) => {
+    const id = parseInt(req.params.id);
+    const report = await storage.getReconciliationReport(id);
+    if (!report) return res.status(404).json({ message: "Report not found" });
+    const items = await storage.getReconciliationReportItems(id);
+    res.json({ ...report, items });
   });
 
   return httpServer;

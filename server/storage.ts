@@ -2,6 +2,7 @@ import {
   inventoryItems, locations, stockLevels, projects, allocations,
   transfers, pickLists, auditLog, appUsers, notificationRecipients,
   vendors, purchaseOrders, purchaseOrderItems,
+  reconciliationReports, reconciliationReportItems,
   type InventoryItem, type InsertInventoryItem,
   type Location, type InsertLocation,
   type StockLevel, type InsertStockLevel,
@@ -15,6 +16,8 @@ import {
   type Vendor, type InsertVendor,
   type PurchaseOrder, type InsertPurchaseOrder,
   type PurchaseOrderItem, type InsertPurchaseOrderItem,
+  type ReconciliationReport, type InsertReconciliationReport,
+  type ReconciliationReportItem, type InsertReconciliationReportItem,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -97,6 +100,12 @@ export interface IStorage {
 
   getPurchaseOrderItems(poId: number): Promise<PurchaseOrderItem[]>;
   createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem>;
+
+  getReconciliationReports(): Promise<ReconciliationReport[]>;
+  getReconciliationReport(id: number): Promise<ReconciliationReport | undefined>;
+  createReconciliationReport(report: InsertReconciliationReport): Promise<ReconciliationReport>;
+  getReconciliationReportItems(reportId: number): Promise<ReconciliationReportItem[]>;
+  createReconciliationReportItem(item: InsertReconciliationReportItem): Promise<ReconciliationReportItem>;
 
   runTransaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T>;
 }
@@ -402,6 +411,29 @@ export class DatabaseStorage implements IStorage {
   async createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
     const [created] = await db.insert(purchaseOrderItems).values(item).returning();
     return created;
+  }
+
+  async getReconciliationReports(): Promise<ReconciliationReport[]> {
+    return db.select().from(reconciliationReports).orderBy(desc(reconciliationReports.submittedAt));
+  }
+
+  async getReconciliationReport(id: number): Promise<ReconciliationReport | undefined> {
+    const rows = await db.select().from(reconciliationReports).where(eq(reconciliationReports.id, id));
+    return rows[0];
+  }
+
+  async createReconciliationReport(report: InsertReconciliationReport): Promise<ReconciliationReport> {
+    const rows = await db.insert(reconciliationReports).values(report).returning();
+    return rows[0];
+  }
+
+  async getReconciliationReportItems(reportId: number): Promise<ReconciliationReportItem[]> {
+    return db.select().from(reconciliationReportItems).where(eq(reconciliationReportItems.reportId, reportId));
+  }
+
+  async createReconciliationReportItem(item: InsertReconciliationReportItem): Promise<ReconciliationReportItem> {
+    const rows = await db.insert(reconciliationReportItems).values(item).returning();
+    return rows[0];
   }
 
   async runTransaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {
