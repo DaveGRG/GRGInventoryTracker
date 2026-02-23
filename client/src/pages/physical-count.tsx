@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ClipboardCheck, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, ClipboardCheck, Loader2, ChevronDown, ChevronRight, Plus, Minus } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -303,7 +303,7 @@ export default function PhysicalCountPage() {
                       <CollapsibleContent>
                         <div className="mt-1 border rounded-lg overflow-hidden">
                           <div className="max-h-[60vh] overflow-y-auto">
-                            <div className="grid px-3 py-2 bg-muted border-b sticky top-0 z-10" style={{ gridTemplateColumns: '1fr 5rem 5rem' }}>
+                            <div className="grid px-3 py-2 bg-muted border-b sticky top-0 z-10" style={{ gridTemplateColumns: '1fr 3.5rem minmax(0, 9rem)' }}>
                               <span></span>
                               <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold text-center leading-tight">System<br/>Qty</span>
                               <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold text-center leading-tight">Count</span>
@@ -311,11 +311,12 @@ export default function PhysicalCountPage() {
                             {groupItems.map((item) => {
                               const systemQty = item.systemQty;
                               const isDiff = hasDifference(item.sku, systemQty);
+                              const currentVal = parseInt(getInputValue(item.sku, systemQty), 10) || 0;
                               return (
                                 <div
                                   key={item.sku}
-                                  className={`grid items-center px-3 py-2.5 border-b last:border-b-0 ${isDiff ? "bg-primary/5" : ""}`}
-                                  style={{ gridTemplateColumns: '1fr 5rem 5rem' }}
+                                  className={`grid items-center px-3 py-2 border-b last:border-b-0 ${isDiff ? "bg-primary/5" : ""}`}
+                                  style={{ gridTemplateColumns: '1fr 3.5rem minmax(0, 9rem)' }}
                                   data-testid={`physical-count-item-${item.sku}`}
                                 >
                                   <span
@@ -330,14 +331,36 @@ export default function PhysicalCountPage() {
                                   >
                                     {systemQty}
                                   </p>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    value={getInputValue(item.sku, systemQty)}
-                                    onChange={(e) => handleQuantityChange(item.sku, e.target.value)}
-                                    className="w-full text-center tabular-nums"
-                                    data-testid={`input-counted-qty-${item.sku}`}
-                                  />
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => handleQuantityChange(item.sku, String(Math.max(0, currentVal - 1)))}
+                                      className="flex-none touch-manipulation"
+                                      data-testid={`button-minus-${item.sku}`}
+                                    >
+                                      <Minus className="h-5 w-5" />
+                                    </Button>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={getInputValue(item.sku, systemQty)}
+                                      onChange={(e) => handleQuantityChange(item.sku, e.target.value)}
+                                      className="flex-1 min-w-0 text-center tabular-nums"
+                                      data-testid={`input-counted-qty-${item.sku}`}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => handleQuantityChange(item.sku, String(currentVal + 1))}
+                                      className="flex-none touch-manipulation"
+                                      data-testid={`button-plus-${item.sku}`}
+                                    >
+                                      <Plus className="h-5 w-5" />
+                                    </Button>
+                                  </div>
                                 </div>
                               );
                             })}
