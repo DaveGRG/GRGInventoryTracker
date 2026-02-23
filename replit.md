@@ -4,11 +4,16 @@
 A mobile-first Progressive Web App for GRG Playscapes to track lumber inventory across Farm and MKE hubs. Features project allocation, transfer management between locations, pick list generation for field crews, comprehensive audit logging, and role-based access control.
 
 ## Recent Changes
+- 2026-02-23: Removed login requirement
+  - Auth gate removed from frontend Router — app goes straight to dashboard after splash
+  - isAuthenticated middleware removed from all API routes
+  - Landing page and user avatar menu removed (app-header simplified)
+  - App is now fully open access — no sign-in needed
 - 2026-02-23: Splash screen
   - Animated splash screen on app launch with playground background photo, GRG logo fade-in, and audio chord
   - Three-phase animation: background fade (0→2.8s), logo + audio (2.8s), "Tap/Press to continue" prompt (3.8s)
   - Audio plays on user interaction (tap/keypress) to comply with browser autoplay policies
-  - Renders before auth loading; transitions to login/dashboard on user interaction
+  - Renders before auth loading; transitions to dashboard on user interaction
   - SplashScreen component at client/src/pages/splash.tsx
 - 2026-02-23: Reconciliation reports (Physical Count refactor)
   - Physical Count page no longer modifies inventory directly

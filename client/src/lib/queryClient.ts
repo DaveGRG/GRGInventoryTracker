@@ -12,12 +12,15 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  const res = await fetch(
+    url.startsWith("/") ? `https://workspace.dave763.repl.co${url}` : url,
+    {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    },
+  );
 
   await throwIfResNotOk(res);
   return res;
@@ -30,9 +33,12 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
-    const res = await fetch(url, {
-      credentials: "include",
-    });
+    const res = await fetch(
+      url.startsWith("/") ? `https://workspace.dave763.repl.co${url}` : url,
+      {
+        credentials: "include",
+      },
+    );
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
