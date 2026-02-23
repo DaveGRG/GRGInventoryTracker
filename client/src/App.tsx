@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
+import SplashScreen from "@/pages/splash";
 import LandingPage from "@/pages/landing";
 import DashboardPage from "@/pages/dashboard";
 import InventoryPage from "@/pages/inventory";
@@ -73,6 +75,12 @@ function Router() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
