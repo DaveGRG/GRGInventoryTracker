@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -50,15 +50,8 @@ function AuthenticatedRoutes() {
   );
 }
 
-function AppContent() {
-  const { isAuthenticated, isLoading, logout } = useAuth();
-  const [splashDismissed, setSplashDismissed] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      setSplashDismissed(true);
-    }
-  }, [isLoading, isAuthenticated]);
+function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -73,19 +66,25 @@ function AppContent() {
     );
   }
 
-  if (!isAuthenticated || !splashDismissed) {
-    return <SplashScreen onComplete={() => setSplashDismissed(true)} />;
+  if (!isAuthenticated) {
+    return <SplashScreen onComplete={() => {}} />;
   }
 
   return <AuthenticatedRoutes />;
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <AppContent />
+        <Router />
       </TooltipProvider>
     </QueryClientProvider>
   );
