@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import splashBg from "@assets/image_1771868325773.png";
-import logoImg from "@assets/image_1771694966878.png";
+import logoImg from "@assets/image_1771872671169.png";
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -107,11 +107,9 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           bottom: "80px",
           left: "50%",
           transform: "translateX(-50%)",
-          width: "min(280px, 60vw)",
-          borderRadius: "16px",
+          width: "min(240px, 55vw)",
           opacity: phase >= 2 ? 1 : 0,
           transition: "opacity 1.5s ease",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
         }}
       />
 
