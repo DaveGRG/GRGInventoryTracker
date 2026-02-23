@@ -18,6 +18,8 @@ export default function NotificationsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newNotifyTransfers, setNewNotifyTransfers] = useState(true);
+  const [newNotifyReconciliation, setNewNotifyReconciliation] = useState(true);
   const { toast } = useToast();
 
   const { data: recipients, isLoading } = useQuery<NotificationRecipient[]>({
@@ -25,7 +27,7 @@ export default function NotificationsPage() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async (data: { name: string; email: string; active: boolean }) => {
+    mutationFn: async (data: { name: string; email: string; active: boolean; notifyTransfers?: boolean; notifyReconciliation?: boolean }) => {
       const res = await apiRequest("POST", "/api/notifications/recipients", data);
       return res.json();
     },
@@ -33,8 +35,6 @@ export default function NotificationsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications/recipients"] });
       toast({ title: "Recipient added" });
       setAddOpen(false);
-      setNewName("");
-      setNewEmail("");
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -159,7 +159,10 @@ export default function NotificationsPage() {
         </Card>
       </div>
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={(open) => {
+        setAddOpen(open);
+        if (!open) { setNewName(""); setNewEmail(""); setNewNotifyTransfers(true); setNewNotifyReconciliation(true); }
+      }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Add Recipient</DialogTitle>
@@ -184,11 +187,26 @@ export default function NotificationsPage() {
                 data-testid="input-recipient-email"
               />
             </div>
+            <div>
+              <Label className="mb-2 block">Notification Types</Label>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2.5 cursor-pointer" data-testid="toggle-new-transfers">
+                  <Switch checked={newNotifyTransfers} onCheckedChange={setNewNotifyTransfers} />
+                  <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">Transfers</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer" data-testid="toggle-new-reconciliation">
+                  <Switch checked={newNotifyReconciliation} onCheckedChange={setNewNotifyReconciliation} />
+                  <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">Reconciliation Reports</span>
+                </label>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button
-              onClick={() => addMutation.mutate({ name: newName, email: newEmail, active: true })}
+              onClick={() => addMutation.mutate({ name: newName, email: newEmail, active: true, notifyTransfers: newNotifyTransfers, notifyReconciliation: newNotifyReconciliation })}
               disabled={!newName || !newEmail || addMutation.isPending}
               data-testid="button-save-recipient"
             >
