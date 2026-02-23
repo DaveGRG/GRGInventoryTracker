@@ -157,6 +157,7 @@ export const reconciliationReports = pgTable("reconciliation_reports", {
   id: serial("id").primaryKey(),
   locationId: text("location_id").notNull(),
   submittedBy: text("submitted_by").notNull(),
+  countDate: text("count_date").notNull().default(""),
   submittedAt: timestamp("submitted_at").defaultNow(),
   totalItems: integer("total_items").notNull().default(0),
   discrepancyCount: integer("discrepancy_count").notNull().default(0),

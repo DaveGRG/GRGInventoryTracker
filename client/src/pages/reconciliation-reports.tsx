@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ClipboardCheck, ChevronRight, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import type { ReconciliationReport, ReconciliationReportItem } from "@shared/schema";
 
 interface ReportWithItems extends ReconciliationReport {
@@ -23,6 +24,10 @@ export default function ReconciliationReportsPage() {
 
   const { data: reportDetail, isLoading: detailLoading } = useQuery<ReportWithItems>({
     queryKey: ["/api/reconciliation-reports", selectedReportId],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/reconciliation-reports/${selectedReportId}`);
+      return res.json();
+    },
     enabled: !!selectedReportId,
   });
 
@@ -72,7 +77,7 @@ export default function ReconciliationReportsPage() {
                       {report.discrepancyCount > 0 ? `${report.discrepancyCount} discrepanc${report.discrepancyCount !== 1 ? "ies" : "y"}` : "All match"}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">{formatDate(report.submittedAt)}</p>
+                  <p className="text-xs text-muted-foreground">Count date: {report.countDate || "N/A"}</p>
                   <p className="text-xs text-muted-foreground">{report.submittedBy} · {report.totalItems} items</p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -112,8 +117,8 @@ export default function ReconciliationReportsPage() {
                   <p className="text-sm font-semibold">{reportDetail.locationId}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="text-sm font-medium">{formatDate(reportDetail.submittedAt)}</p>
+                  <p className="text-xs text-muted-foreground">Count Date</p>
+                  <p className="text-sm font-medium">{reportDetail.countDate || formatDate(reportDetail.submittedAt)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Submitted By</p>

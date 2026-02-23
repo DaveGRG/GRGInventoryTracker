@@ -6,7 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Search, ClipboardCheck, Loader2, ChevronDown, ChevronRight, Plus, Minus } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -29,6 +31,9 @@ export default function PhysicalCountPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const [submissionResult, setSubmissionResult] = useState<number | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitterName, setSubmitterName] = useState("");
+  const [countDate, setCountDate] = useState(() => new Date().toISOString().split("T")[0]);
   const { toast } = useToast();
 
   const { data: items, isLoading: itemsLoading } = useQuery<InventoryItemWithStock[]>({
@@ -156,13 +161,17 @@ export default function PhysicalCountPage() {
     setSearch("");
   };
 
+  const openConfirmDialog = () => {
+    setConfirmOpen(true);
+  };
+
   const handleSubmit = async () => {
     if (locationItems.length === 0) return;
     setIsSubmitting(true);
     setSubmissionResult(null);
 
     try {
-      const items = locationItems.map((item) => ({
+      const countItems = locationItems.map((item) => ({
         sku: item.sku,
         systemQty: item.systemQty,
         countedQty: getCountedQty(item.sku, item.systemQty),
@@ -170,19 +179,24 @@ export default function PhysicalCountPage() {
 
       await apiRequest("POST", "/api/reconciliation-reports", {
         locationId: selectedLocation,
-        items,
+        submittedBy: submitterName,
+        countDate,
+        items: countItems,
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/reconciliation-reports"] });
 
-      const discrepancyCount = items.filter((i) => i.systemQty !== i.countedQty).length;
+      const discrepancyCount = countItems.filter((i) => i.systemQty !== i.countedQty).length;
       setIsSubmitting(false);
-      setSubmissionResult(items.length);
+      setSubmissionResult(countItems.length);
       setCountedQuantities({});
+      setConfirmOpen(false);
+      setSubmitterName("");
+      setCountDate(new Date().toISOString().split("T")[0]);
 
       toast({
         title: "Reconciliation report submitted",
-        description: `${items.length} items counted, ${discrepancyCount} discrepanc${discrepancyCount !== 1 ? "ies" : "y"} found.`,
+        description: `${countItems.length} items counted, ${discrepancyCount} discrepanc${discrepancyCount !== 1 ? "ies" : "y"} found.`,
       });
     } catch {
       setIsSubmitting(false);
@@ -375,21 +389,11 @@ export default function PhysicalCountPage() {
               <div className="sticky bottom-20 z-30 pt-2">
                 <Button
                   className="w-full"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  onClick={openConfirmDialog}
                   data-testid="button-submit-count"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <ClipboardCheck className="h-4 w-4 mr-2" />
-                      Submit Reconciliation Report{diffCount > 0 ? ` (${diffCount} discrepanc${diffCount !== 1 ? "ies" : "y"})` : ""}
-                    </>
-                  )}
+                  <ClipboardCheck className="h-4 w-4 mr-2" />
+                  Submit Reconciliation Report{diffCount > 0 ? ` (${diffCount} discrepanc${diffCount !== 1 ? "ies" : "y"})` : ""}
                 </Button>
               </div>
             )}
@@ -405,6 +409,58 @@ export default function PhysicalCountPage() {
         )}
       </div>
 
+      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open && !isSubmitting) setConfirmOpen(false); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5" />
+              Submit Reconciliation Report
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Your Name</Label>
+              <Input
+                value={submitterName}
+                onChange={(e) => setSubmitterName(e.target.value)}
+                placeholder="e.g. John Smith"
+                data-testid="input-submitter-name"
+              />
+            </div>
+            <div>
+              <Label>Count Date</Label>
+              <Input
+                type="date"
+                value={countDate}
+                onChange={(e) => setCountDate(e.target.value)}
+                data-testid="input-count-date"
+              />
+            </div>
+            <div className="bg-muted/50 rounded-md p-3 text-sm space-y-1">
+              <p><span className="font-medium">Location:</span> {selectedLocation}</p>
+              <p><span className="font-medium">Items counted:</span> {locationItems.length}</p>
+              <p><span className="font-medium">Discrepancies:</span> {diffCount}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!submitterName.trim() || !countDate || isSubmitting}
+              data-testid="button-confirm-submit"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Report"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

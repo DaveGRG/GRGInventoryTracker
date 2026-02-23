@@ -1342,6 +1342,8 @@ export async function registerRoutes(
 
   const createReconciliationSchema = z.object({
     locationId: z.string().min(1),
+    submittedBy: z.string().min(1),
+    countDate: z.string().min(1),
     items: z.array(z.object({
       sku: z.string().min(1),
       systemQty: z.number().int().min(0),
@@ -1351,8 +1353,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/reconciliation-reports", isAuthenticated, validate(createReconciliationSchema), async (req: any, res) => {
-    const { locationId, items, notes } = req.body;
-    const submittedBy = req.user?.claims?.email || "unknown";
+    const { locationId, items, notes, submittedBy, countDate } = req.body;
 
     const allItems = items.map((item: { sku: string; systemQty: number; countedQty: number }) => ({
       ...item,
@@ -1363,6 +1364,7 @@ export async function registerRoutes(
     const report = await storage.createReconciliationReport({
       locationId,
       submittedBy,
+      countDate,
       totalItems: allItems.length,
       discrepancyCount: discrepancies.length,
       notes: notes || null,
