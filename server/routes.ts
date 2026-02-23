@@ -1,15 +1,9 @@
-import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { isAuthenticated } from "./firebaseAuth";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-
-function asyncHandler(fn: (req: any, res: Response, next: NextFunction) => Promise<any>): RequestHandler {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-}
 import { insertInventoryItemSchema, insertNotificationRecipientSchema, insertVendorSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists, purchaseOrders, purchaseOrderItems, reconciliationReports, reconciliationReportItems } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -116,19 +110,22 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  await setupAuth(app);
+  registerAuthRoutes(app);
+
   await seedDatabase();
 
-  app.get("/api/locations", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/locations", isAuthenticated, async (_req, res) => {
     const locs = await storage.getLocations();
     res.json(locs);
-  }));
+  });
 
-  app.get("/api/inventory/items", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/inventory/items", isAuthenticated, async (_req, res) => {
     const items = await storage.getInventoryItems();
     res.json(items);
-  }));
+  });
 
-  app.get("/api/inventory", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/inventory", isAuthenticated, async (_req, res) => {
     const items = await storage.getInventoryItems();
     const allStockLevels = await storage.getStockLevels();
     const locs = await storage.getLocations();
@@ -146,9 +143,9 @@ export async function registerRoutes(
     });
 
     res.json(result);
-  }));
+  });
 
-  app.patch("/api/inventory/:sku/par-levels", isAuthenticated, validate(updateParLevelsSchema), asyncHandler(async (req: any, res) => {
+  app.patch("/api/inventory/:sku/par-levels", isAuthenticated, validate(updateParLevelsSchema), async (req: any, res) => {
     const { sku } = req.params;
     const { farmParLevel, mkeParLevel } = req.body;
 
@@ -157,9 +154,9 @@ export async function registerRoutes(
 
     const updated = await storage.updateInventoryItem(sku, { farmParLevel, mkeParLevel });
     res.json(updated);
-  }));
+  });
 
-  app.post("/api/inventory", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.post("/api/inventory", isAuthenticated, async (req: any, res) => {
     try {
       const parsed = insertInventoryItemSchema.parse(req.body);
 
@@ -200,9 +197,9 @@ export async function registerRoutes(
       }
       throw error;
     }
-  }));
+  });
 
-  app.post("/api/stock/adjust", isAuthenticated, validate(stockAdjustSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/stock/adjust", isAuthenticated, validate(stockAdjustSchema), async (req: any, res) => {
     const { sku, locationId, newQuantity, reason, notes } = req.body;
 
     const existing = await storage.getStockLevel(sku, locationId);
@@ -228,9 +225,9 @@ export async function registerRoutes(
     });
 
     res.json({ success: true });
-  }));
+  });
 
-  app.get("/api/dashboard", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/dashboard", isAuthenticated, async (_req, res) => {
     const items = await storage.getInventoryItems();
     const allStockLevels = await storage.getStockLevels();
     const locs = await storage.getLocations();
@@ -292,9 +289,9 @@ export async function registerRoutes(
       activeClients: activeClients.size,
       pendingPickLists: 0,
     });
-  }));
+  });
 
-  app.get("/api/clients", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/clients", isAuthenticated, async (_req, res) => {
     const allProjects = await storage.getProjects();
     const allocations = await storage.getAllocations();
 
@@ -345,9 +342,9 @@ export async function registerRoutes(
     clients.sort((a, b) => b.activeCount - a.activeCount || a.name.localeCompare(b.name));
 
     res.json(clients);
-  }));
+  });
 
-  app.get("/api/reports/par-levels", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/reports/par-levels", isAuthenticated, async (_req, res) => {
     const items = await storage.getInventoryItems();
     const allStockLevels = await storage.getStockLevels();
     const locs = await storage.getLocations();
@@ -377,9 +374,9 @@ export async function registerRoutes(
 
     alerts.sort((a: any, b: any) => b.deficit - a.deficit);
     res.json(alerts);
-  }));
+  });
 
-  app.get("/api/projects", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/projects", isAuthenticated, async (_req, res) => {
     const projs = await storage.getProjects();
     const allAllocs = await storage.getAllocations();
     const result = projs.map((p) => {
@@ -388,15 +385,15 @@ export async function registerRoutes(
       return { ...p, allPulled };
     });
     res.json(result);
-  }));
+  });
 
-  app.get("/api/projects/:id", isAuthenticated, asyncHandler(async (req, res) => {
+  app.get("/api/projects/:id", isAuthenticated, async (req, res) => {
     const project = await storage.getProject(req.params.id as string);
     if (!project) return res.status(404).json({ message: "Project not found" });
     res.json(project);
-  }));
+  });
 
-  app.post("/api/projects", isAuthenticated, validate(createProjectSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/projects", isAuthenticated, validate(createProjectSchema), async (req: any, res) => {
     const { projectName, catalogId, client, assignedHub, projectLead, notes, allocations: rows } = req.body;
 
     const projectId = await storage.getNextProjectId();
@@ -434,14 +431,14 @@ export async function registerRoutes(
     }
 
     res.json(project);
-  }));
+  });
 
-  app.get("/api/projects/:id/allocations", isAuthenticated, asyncHandler(async (req, res) => {
+  app.get("/api/projects/:id/allocations", isAuthenticated, async (req, res) => {
     const allocs = await storage.getAllocationsByProject(req.params.id as string);
     res.json(allocs);
-  }));
+  });
 
-  app.post("/api/projects/:id/allocations", isAuthenticated, validate(createAllocationSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/projects/:id/allocations", isAuthenticated, validate(createAllocationSchema), async (req: any, res) => {
     const { sku, quantity, sourceLocation } = req.body;
 
     const stockLevel = await storage.getStockLevel(sku, sourceLocation);
@@ -479,9 +476,9 @@ export async function registerRoutes(
     });
 
     res.json(alloc);
-  }));
+  });
 
-  app.post("/api/projects/:id/allocations/bulk", isAuthenticated, validate(bulkAllocationsSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/projects/:id/allocations/bulk", isAuthenticated, validate(bulkAllocationsSchema), async (req: any, res) => {
     const { allocations: rows } = req.body;
 
     const project = await storage.getProject(req.params.id);
@@ -546,9 +543,9 @@ export async function registerRoutes(
     const successCount = results.filter((r) => r.status === "success").length;
     const errorCount = results.filter((r) => r.status === "error").length;
     res.json({ results, successCount, errorCount });
-  }));
+  });
 
-  app.post("/api/projects/:id/generate-pick-list", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.post("/api/projects/:id/generate-pick-list", isAuthenticated, async (req: any, res) => {
     const allocs = await storage.getAllocationsByProject(req.params.id);
     const reserved = allocs.filter((a) => a.status === "Pending" && a.sourceLocation);
     if (reserved.length === 0) {
@@ -572,14 +569,14 @@ export async function registerRoutes(
     }
 
     res.json(created);
-  }));
+  });
 
-  app.get("/api/projects/:id/pick-lists", isAuthenticated, asyncHandler(async (req, res) => {
+  app.get("/api/projects/:id/pick-lists", isAuthenticated, async (req, res) => {
     const picks = await storage.getPickListsByProject(req.params.id as string);
     res.json(picks);
-  }));
+  });
 
-  app.post("/api/pick-lists/:id/confirm", isAuthenticated, validate(confirmPickSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/pick-lists/:id/confirm", isAuthenticated, validate(confirmPickSchema), async (req: any, res) => {
     const pickId = parseInt(req.params.id);
     const { quantityPicked } = req.body;
 
@@ -626,9 +623,9 @@ export async function registerRoutes(
     });
 
     res.json({ success: true });
-  }));
+  });
 
-  app.post("/api/projects/:id/allocations/pull-batch", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.post("/api/projects/:id/allocations/pull-batch", isAuthenticated, async (req: any, res) => {
     const projectId = req.params.id;
     const { allocationIds } = req.body;
 
@@ -708,9 +705,9 @@ export async function registerRoutes(
     });
 
     res.json({ success: true, pulledCount: validAllocs.length });
-  }));
+  });
 
-  app.post("/api/projects/:id/allocations/unpull-batch", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.post("/api/projects/:id/allocations/unpull-batch", isAuthenticated, async (req: any, res) => {
     const projectId = req.params.id;
     const { allocationIds } = req.body;
     if (!Array.isArray(allocationIds) || allocationIds.length === 0) {
@@ -770,14 +767,14 @@ export async function registerRoutes(
     });
 
     res.json({ success: true, unpulledCount: validAllocs.length });
-  }));
+  });
 
-  app.get("/api/transfers", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/transfers", isAuthenticated, async (_req, res) => {
     const t = await storage.getTransfers();
     res.json(t);
-  }));
+  });
 
-  app.post("/api/transfers", isAuthenticated, validate(createTransferSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/transfers", isAuthenticated, validate(createTransferSchema), async (req: any, res) => {
     const { sku, quantity, fromLocation, toLocation, notes, requestDate } = req.body;
 
     const stockLevel = await storage.getStockLevel(sku, fromLocation);
@@ -811,9 +808,9 @@ export async function registerRoutes(
     });
 
     res.json(transfer);
-  }));
+  });
 
-  app.post("/api/transfers/batch", isAuthenticated, validate(createBatchTransferSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/transfers/batch", isAuthenticated, validate(createBatchTransferSchema), async (req: any, res) => {
     const { items, fromLocation, toLocation, requestDate, notes } = req.body;
     const userEmail = req.user?.claims?.email || "system";
     const date = requestDate || new Date().toISOString().split("T")[0];
@@ -871,9 +868,9 @@ export async function registerRoutes(
     }
 
     res.json(created);
-  }));
+  });
 
-  app.post("/api/transfers/:id/ship", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.post("/api/transfers/:id/ship", isAuthenticated, async (req: any, res) => {
     const transferId = parseInt(req.params.id);
     const transfer = await storage.getTransfer(transferId);
     if (!transfer) return res.status(404).json({ message: "Transfer not found" });
@@ -911,9 +908,9 @@ export async function registerRoutes(
     });
 
     res.json({ success: true });
-  }));
+  });
 
-  app.post("/api/transfers/:id/receive", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.post("/api/transfers/:id/receive", isAuthenticated, async (req: any, res) => {
     const transferId = parseInt(req.params.id);
     const { quantityReceived } = req.body;
     const transfer = await storage.getTransfer(transferId);
@@ -963,9 +960,9 @@ export async function registerRoutes(
     });
 
     res.json({ success: true });
-  }));
+  });
 
-  app.post("/api/transfers/:id/cancel", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.post("/api/transfers/:id/cancel", isAuthenticated, async (req: any, res) => {
     const transferId = parseInt(req.params.id);
     const transfer = await storage.getTransfer(transferId);
     if (!transfer) return res.status(404).json({ message: "Transfer not found" });
@@ -1005,9 +1002,9 @@ export async function registerRoutes(
     });
 
     res.json({ success: true });
-  }));
+  });
 
-  app.delete("/api/inventory/:sku", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.delete("/api/inventory/:sku", isAuthenticated, async (req: any, res) => {
     const { sku } = req.params;
     const userEmail = req.user?.claims?.email || "system";
 
@@ -1086,9 +1083,9 @@ export async function registerRoutes(
     });
 
     res.json({ success: true });
-  }));
+  });
 
-  app.delete("/api/projects/:id", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.delete("/api/projects/:id", isAuthenticated, async (req: any, res) => {
     const projectId = req.params.id as string;
     const userEmail = req.user?.claims?.email || "system";
 
@@ -1135,9 +1132,9 @@ export async function registerRoutes(
     });
 
     res.json({ success: true });
-  }));
+  });
 
-  app.delete("/api/transfers/:id", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.delete("/api/transfers/:id", isAuthenticated, async (req: any, res) => {
     const transferId = parseInt(req.params.id);
     const userEmail = req.user?.claims?.email || "system";
 
@@ -1185,20 +1182,20 @@ export async function registerRoutes(
     });
 
     res.json({ success: true });
-  }));
+  });
 
-  app.get("/api/audit-log", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/audit-log", isAuthenticated, async (_req, res) => {
     const entries = await storage.getAuditLog();
     res.json(entries);
-  }));
+  });
 
-  app.get("/api/app-users", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/app-users", isAuthenticated, async (_req, res) => {
     const users = await storage.getAppUsers();
     const safe = users.map(({ passwordHash, ...rest }) => rest);
     res.json(safe);
-  }));
+  });
 
-  app.post("/api/app-users", isAuthenticated, validate(createUserSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/app-users", isAuthenticated, validate(createUserSchema), async (req: any, res) => {
     const { email, password, displayName, role, assignedHub } = req.body;
 
     const existing = await storage.getAppUserByEmail(email);
@@ -1218,38 +1215,38 @@ export async function registerRoutes(
 
     const { passwordHash, ...safe } = user;
     res.json(safe);
-  }));
+  });
 
-  app.get("/api/notifications/recipients", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/notifications/recipients", isAuthenticated, async (_req, res) => {
     const recipients = await storage.getNotificationRecipients();
     res.json(recipients);
-  }));
+  });
 
-  app.post("/api/notifications/recipients", isAuthenticated, validate(insertNotificationRecipientSchema), asyncHandler(async (req, res) => {
+  app.post("/api/notifications/recipients", isAuthenticated, validate(insertNotificationRecipientSchema), async (req: any, res) => {
     const recipient = await storage.createNotificationRecipient(req.body);
     res.json(recipient);
-  }));
+  });
 
   const patchRecipientSchema = insertNotificationRecipientSchema.partial();
-  app.patch("/api/notifications/recipients/:id", isAuthenticated, validate(patchRecipientSchema), asyncHandler(async (req, res) => {
+  app.patch("/api/notifications/recipients/:id", isAuthenticated, validate(patchRecipientSchema), async (req: any, res) => {
     const id = parseInt(req.params.id);
     const updated = await storage.updateNotificationRecipient(id, req.body);
     if (!updated) return res.status(404).json({ message: "Recipient not found" });
     res.json(updated);
-  }));
+  });
 
-  app.delete("/api/notifications/recipients/:id", isAuthenticated, asyncHandler(async (req, res) => {
+  app.delete("/api/notifications/recipients/:id", isAuthenticated, async (req: any, res) => {
     const id = parseInt(req.params.id);
     await storage.deleteNotificationRecipient(id);
     res.json({ success: true });
-  }));
+  });
 
-  app.get("/api/vendors", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/vendors", isAuthenticated, async (_req, res) => {
     const vendorList = await storage.getVendors();
     res.json(vendorList);
-  }));
+  });
 
-  app.post("/api/vendors", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.post("/api/vendors", isAuthenticated, async (req: any, res) => {
     try {
       const parsed = insertVendorSchema.parse(req.body);
       const vendor = await storage.createVendor(parsed);
@@ -1260,25 +1257,25 @@ export async function registerRoutes(
       }
       throw error;
     }
-  }));
+  });
 
-  app.patch("/api/vendors/:id", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.patch("/api/vendors/:id", isAuthenticated, async (req: any, res) => {
     const id = parseInt(req.params.id);
     const updated = await storage.updateVendor(id, req.body);
     if (!updated) return res.status(404).json({ message: "Vendor not found" });
     res.json(updated);
-  }));
+  });
 
-  app.delete("/api/vendors/:id", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.delete("/api/vendors/:id", isAuthenticated, async (req: any, res) => {
     const id = parseInt(req.params.id);
     await storage.deleteVendor(id);
     res.json({ success: true });
-  }));
+  });
 
-  app.get("/api/purchase-orders/next-number", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/purchase-orders/next-number", isAuthenticated, async (_req, res) => {
     const poNumber = await storage.getNextPoNumber();
     res.json({ poNumber });
-  }));
+  });
 
   const createPoSchema = z.object({
     vendorId: z.number().int(),
@@ -1291,7 +1288,7 @@ export async function registerRoutes(
     })).min(1),
   });
 
-  app.post("/api/purchase-orders", isAuthenticated, validate(createPoSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/purchase-orders", isAuthenticated, validate(createPoSchema), async (req: any, res) => {
     const { vendorId, orderDate, notes, items } = req.body;
     const userEmail = req.user?.claims?.email || "system";
 
@@ -1331,9 +1328,9 @@ export async function registerRoutes(
     );
 
     res.json({ ...po, items, emailSent });
-  }));
+  });
 
-  app.get("/api/purchase-orders", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/purchase-orders", isAuthenticated, async (_req, res) => {
     const pos = await storage.getPurchaseOrders();
     const result = await Promise.all(pos.map(async (po) => {
       const items = await storage.getPurchaseOrderItems(po.id);
@@ -1341,7 +1338,7 @@ export async function registerRoutes(
       return { ...po, items, vendor };
     }));
     res.json(result);
-  }));
+  });
 
   const createReconciliationSchema = z.object({
     locationId: z.string().min(1),
@@ -1355,7 +1352,7 @@ export async function registerRoutes(
     notes: z.string().optional().nullable(),
   });
 
-  app.post("/api/reconciliation-reports", isAuthenticated, validate(createReconciliationSchema), asyncHandler(async (req: any, res) => {
+  app.post("/api/reconciliation-reports", isAuthenticated, validate(createReconciliationSchema), async (req: any, res) => {
     const { locationId, items, notes, submittedBy, countDate } = req.body;
 
     const allItems = items.map((item: { sku: string; systemQty: number; countedQty: number }) => ({
@@ -1402,20 +1399,20 @@ export async function registerRoutes(
     }
 
     res.json({ ...report, items: allItems });
-  }));
+  });
 
-  app.get("/api/reconciliation-reports", isAuthenticated, asyncHandler(async (_req, res) => {
+  app.get("/api/reconciliation-reports", isAuthenticated, async (_req, res) => {
     const reports = await storage.getReconciliationReports();
     res.json(reports);
-  }));
+  });
 
-  app.get("/api/reconciliation-reports/:id", isAuthenticated, asyncHandler(async (req: any, res) => {
+  app.get("/api/reconciliation-reports/:id", isAuthenticated, async (req: any, res) => {
     const id = parseInt(req.params.id);
     const report = await storage.getReconciliationReport(id);
     if (!report) return res.status(404).json({ message: "Report not found" });
     const items = await storage.getReconciliationReportItems(id);
     res.json({ ...report, items });
-  }));
+  });
 
   return httpServer;
 }

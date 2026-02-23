@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import SplashScreen from "@/pages/splash";
+import LandingPage from "@/pages/landing";
 import DashboardPage from "@/pages/dashboard";
 import InventoryPage from "@/pages/inventory";
 import ProjectsPage from "@/pages/projects";
@@ -23,7 +24,7 @@ import NotificationsPage from "@/pages/notifications";
 import VendorsPage from "@/pages/vendors";
 import ReconciliationReportsPage from "@/pages/reconciliation-reports";
 import NotFound from "@/pages/not-found";
-import logoImg from "@assets/image_1771872671169.png";
+import logoImg from "@assets/image_1771694966878.png";
 
 function AuthenticatedRoutes() {
   return (
@@ -57,7 +58,7 @@ function Router() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <img src={logoImg} alt="GRG" className="h-16 w-auto object-contain" />
+          <img src={logoImg} alt="GRG" className="h-10 w-10 object-contain" />
           <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: "60%" }} />
           </div>
@@ -67,7 +68,7 @@ function Router() {
   }
 
   if (!isAuthenticated) {
-    return <SplashScreen onComplete={() => {}} />;
+    return <LandingPage />;
   }
 
   return <AuthenticatedRoutes />;
