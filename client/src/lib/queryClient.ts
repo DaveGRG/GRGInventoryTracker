@@ -34,7 +34,9 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
     const res = await fetch(
-      url.startsWith("/") ? `https://workspace.dave763.repl.co${url}` : url,
+      url.startsWith("/")
+        ? `https://a2988566-9e09-4d35-8114-f832a1b198b9-00-1rmamy8e5sc5v.kirk.replit.dev${url}`
+        : url,
       {
         credentials: "include",
       },
