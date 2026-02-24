@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/use-auth";
 import SplashScreen from "@/pages/splash";
 import DashboardPage from "@/pages/dashboard";
 import InventoryPage from "@/pages/inventory";
@@ -24,9 +22,8 @@ import NotificationsPage from "@/pages/notifications";
 import VendorsPage from "@/pages/vendors";
 import ReconciliationReportsPage from "@/pages/reconciliation-reports";
 import NotFound from "@/pages/not-found";
-import logoImg from "@assets/image_1771694966878.png";
 
-function AuthenticatedRoutes() {
+function Routes() {
   return (
     <Switch>
       <Route path="/" component={DashboardPage} />
@@ -51,39 +48,6 @@ function AuthenticatedRoutes() {
   );
 }
 
-function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <img src={logoImg} alt="GRG" className="h-10 w-10 object-contain" />
-          <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: "60%" }} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <img src={logoImg} alt="GRG Playscapes" className="h-12 w-12 object-contain" />
-          <h2 className="text-lg font-semibold">GRG Playscapes Inventory</h2>
-          <Button asChild size="lg" data-testid="button-sign-in">
-            <a href="/api/login">Sign In</a>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return <AuthenticatedRoutes />;
-}
-
 function App() {
   const [showSplash, setShowSplash] = useState(() => {
     return !sessionStorage.getItem("splashSeen");
@@ -102,7 +66,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <Routes />
       </TooltipProvider>
     </QueryClientProvider>
   );
