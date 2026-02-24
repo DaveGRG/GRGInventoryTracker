@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import SplashScreen from "@/pages/splash";
 import DashboardPage from "@/pages/dashboard";
 import InventoryPage from "@/pages/inventory";
 import ProjectsPage from "@/pages/projects";
@@ -49,19 +47,6 @@ function Routes() {
 }
 
 function App() {
-  const [showSplash, setShowSplash] = useState(() => {
-    return !sessionStorage.getItem("splashSeen");
-  });
-
-  const handleSplashComplete = () => {
-    sessionStorage.setItem("splashSeen", "1");
-    setShowSplash(false);
-  };
-
-  if (showSplash) {
-    return <SplashScreen onComplete={handleSplashComplete} />;
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
