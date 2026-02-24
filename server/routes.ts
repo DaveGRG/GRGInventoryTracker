@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupGoogleAuth, isAuthenticated } from "./google-auth";
+import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
 import { insertInventoryItemSchema, insertNotificationRecipientSchema, insertVendorSchema, inventoryItems, projects, stockLevels, transfers, auditLog, allocations, pickLists, purchaseOrders, purchaseOrderItems, reconciliationReports, reconciliationReportItems } from "@shared/schema";
@@ -110,16 +110,10 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  await setupGoogleAuth(app);
+  await setupAuth(app);
+  registerAuthRoutes(app);
 
   await seedDatabase();
-
-  app.use("/api", (req, res, next) => {
-    if (req.path.startsWith("/auth/")) {
-      return next();
-    }
-    isAuthenticated(req, res, next);
-  });
 
   app.get("/api/locations", async (_req, res) => {
     const locs = await storage.getLocations();
