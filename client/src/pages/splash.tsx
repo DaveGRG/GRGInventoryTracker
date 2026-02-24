@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import splashBg from "@assets/image_1771868325773.png";
 import logoImg from "@assets/image_1771872671169.png";
 
@@ -9,6 +9,7 @@ interface SplashScreenProps {
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     audioRef.current = new Audio("/sounds/splash-chord.wav");
@@ -17,12 +18,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase(1), 100);
-    const t2 = setTimeout(() => {
-      setPhase(2);
-      if (audioRef.current) {
-        audioRef.current.play().catch(() => {});
-      }
-    }, 2800);
+    const t2 = setTimeout(() => setPhase(2), 2800);
     const t3 = setTimeout(() => setPhase(3), 3800);
     return () => {
       clearTimeout(t1);
@@ -31,35 +27,23 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     };
   }, []);
 
-  const audioPlayedRef = useRef(false);
-
-  const advance = useCallback(() => {
-    if (audioRef.current && !audioPlayedRef.current) {
-      audioPlayedRef.current = true;
+  const handleContinue = () => {
+    if (completedRef.current) return;
+    if (audioRef.current) {
       audioRef.current.play().catch(() => {});
     }
-    if (phase >= 3) {
-      onComplete();
-    }
-  }, [phase, onComplete]);
-
-  useEffect(() => {
-    if (phase < 3) return;
-    const handleKey = () => advance();
-    const handleTouch = () => advance();
-    window.addEventListener("keydown", handleKey);
-    window.addEventListener("click", handleTouch);
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-      window.removeEventListener("click", handleTouch);
-    };
-  }, [phase, advance]);
+    completedRef.current = true;
+    onComplete();
+  };
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   return (
     <div
       data-testid="splash-screen"
+      onClick={phase >= 3 ? handleContinue : undefined}
+      onKeyDown={phase >= 3 ? handleContinue : undefined}
+      tabIndex={0}
       style={{
         position: "fixed",
         inset: 0,
@@ -70,6 +54,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
         alignItems: "center",
         justifyContent: "center",
         zIndex: 9999,
+        cursor: phase >= 3 ? "pointer" : "default",
+        outline: "none",
       }}
     >
       <img
