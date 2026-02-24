@@ -85,10 +85,17 @@ function Router() {
 }
 
 function App() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem("splashSeen");
+  });
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem("splashSeen", "1");
+    setShowSplash(false);
+  };
 
   if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+    return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
   return (
