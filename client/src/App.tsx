@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/use-auth";
 import SplashScreen from "@/pages/splash";
+import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
 import InventoryPage from "@/pages/inventory";
 import ProjectsPage from "@/pages/projects";
@@ -22,8 +24,9 @@ import NotificationsPage from "@/pages/notifications";
 import VendorsPage from "@/pages/vendors";
 import ReconciliationReportsPage from "@/pages/reconciliation-reports";
 import NotFound from "@/pages/not-found";
+import logoImg from "@assets/image_1771872671169.png";
 
-function Routes() {
+function AuthenticatedRoutes() {
   return (
     <Switch>
       <Route path="/" component={DashboardPage} />
@@ -48,6 +51,39 @@ function Routes() {
   );
 }
 
+function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [location, setLocation] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <img src={logoImg} alt="GRG" className="w-32 object-contain" />
+          <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: "60%" }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (location === "/login") {
+    if (isAuthenticated) {
+      setLocation("/");
+      return null;
+    }
+    return <LoginPage />;
+  }
+
+  if (!isAuthenticated) {
+    setLocation("/login");
+    return null;
+  }
+
+  return <AuthenticatedRoutes />;
+}
+
 function App() {
   const [showSplash, setShowSplash] = useState(() => {
     return !sessionStorage.getItem("splashSeen");
@@ -66,7 +102,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Routes />
+        <Router />
       </TooltipProvider>
     </QueryClientProvider>
   );
